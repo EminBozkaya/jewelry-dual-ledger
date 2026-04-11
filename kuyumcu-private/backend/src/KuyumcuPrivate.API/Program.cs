@@ -72,6 +72,10 @@ app.MapTransactionEndpoints();
 app.MapBalanceEndpoints();
 app.MapAssetTypeEndpoints();
 
+app.MapDashboardEndpoints();
+app.MapReportEndpoints();
+app.MapUserEndpoints();
+
 app.MapGet("/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
 
 app.Run();

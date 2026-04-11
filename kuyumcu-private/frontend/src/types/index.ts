@@ -152,3 +152,53 @@ export interface UserCreateRequest {
   password: string;
   role: "Admin" | "Staff";
 }
+
+// ── Report Types ──────────────────────────────────────────────
+export interface PortfolioAsset {
+  assetTypeId: string;
+  assetTypeCode: string;
+  assetTypeName: string;
+  unitType: UnitType;
+  totalPositive: number;
+  totalNegative: number;
+  netAmount: number;
+  customerCount: number;
+}
+
+export interface DailyAssetSummary {
+  assetTypeCode: string;
+  assetTypeName: string;
+  totalAmount: number;
+  count: number;
+}
+
+export interface DailyConversionSummary {
+  fromAssetCode: string;
+  toAssetCode: string;
+  totalFromAmount: number;
+  totalToAmount: number;
+  count: number;
+}
+
+export interface DailyReport {
+  date: string;
+  totalTransactions: number;
+  deposits: DailyAssetSummary[];
+  withdrawals: DailyAssetSummary[];
+  conversions: DailyConversionSummary[];
+  transactions: Transaction[];
+}
+
+export interface CustomerStatement {
+  customer: Customer;
+  period: { from: string; to: string };
+  openingBalances: Balance[];
+  closingBalances: Balance[];
+  transactions: Transaction[];
+}
+
+export interface AssetDetailCustomer {
+  customerId: string;
+  customerFullName: string;
+  amount: number;
+}

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 
 const api = axios.create({
   baseURL: "/api",
@@ -15,14 +16,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor — 401'de login'e yönlendir
+// Response interceptor — hata yönetimi
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("auth");
       window.location.href = "/login";
+      return Promise.reject(error);
     }
+
+    if (error.response?.status === 403) {
+      toast.error("Bu işlem için yetkiniz yok.");
+      return Promise.reject(error);
+    }
+
+    if (error.response?.status >= 500) {
+      toast.error("Sunucu hatası. Lütfen tekrar deneyin.");
+      return Promise.reject(error);
+    }
+
+    if (!error.response) {
+      toast.error("Bağlantı hatası. İnternet bağlantınızı kontrol edin.");
+    }
+
     return Promise.reject(error);
   }
 );
