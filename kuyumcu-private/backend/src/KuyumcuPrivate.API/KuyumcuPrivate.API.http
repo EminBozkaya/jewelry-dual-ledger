@@ -1,0 +1,6 @@
+@KuyumcuPrivate.API_HostAddress = http://localhost:5241
+
+GET {{KuyumcuPrivate.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

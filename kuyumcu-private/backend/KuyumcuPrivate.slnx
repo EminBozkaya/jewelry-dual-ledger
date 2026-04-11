@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/KuyumcuPrivate.API/KuyumcuPrivate.API.csproj" />
+    <Project Path="src/KuyumcuPrivate.Application/KuyumcuPrivate.Application.csproj" />
+    <Project Path="src/KuyumcuPrivate.Domain/KuyumcuPrivate.Domain.csproj" />
+    <Project Path="src/KuyumcuPrivate.Infrastructure/KuyumcuPrivate.Infrastructure.csproj" />
+  </Folder>
+</Solution>
