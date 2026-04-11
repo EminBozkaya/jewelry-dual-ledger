@@ -1,24 +1,30 @@
-import { LogOut, Sun, Moon } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { BreadcrumbNav } from "./BreadcrumbNav";
 
 export function AppHeader() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { isDark, toggle } = useDarkMode();
 
   return (
-    <header className="flex h-14 items-center gap-2 border-b bg-background px-4">
+    <header className="flex h-14 items-center gap-2 border-b px-4"
+            style={{ background: "var(--card)" }}>
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="h-6" />
 
+      {/* Breadcrumb */}
+      <div className="hidden sm:block">
+        <BreadcrumbNav />
+      </div>
+
       <div className="flex-1" />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {/* Dark mode toggle */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -35,21 +41,18 @@ export function AppHeader() {
           <TooltipContent>{isDark ? "Aydınlık Mod" : "Karanlık Mod"}</TooltipContent>
         </Tooltip>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">{user?.fullName}</span>
-          <Badge variant={isAdmin ? "default" : "secondary"}>
+        {/* User info — compact badge */}
+        <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5"
+             style={{ background: "var(--muted)" }}>
+          <span className="text-xs font-medium">{user?.fullName}</span>
+          <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                style={{
+                  background: isAdmin ? "rgba(232,184,74,0.15)" : "var(--secondary)",
+                  color: isAdmin ? "var(--color-gold)" : "var(--muted-foreground)",
+                }}>
             {isAdmin ? "Admin" : "Personel"}
-          </Badge>
+          </span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={logout}
-          className="gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4" />
-          <span className="hidden sm:inline">Çıkış</span>
-        </Button>
       </div>
     </header>
   );

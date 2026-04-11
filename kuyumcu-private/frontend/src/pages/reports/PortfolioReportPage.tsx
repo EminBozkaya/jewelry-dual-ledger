@@ -149,7 +149,7 @@ function assetDetailColumns(navigate: (path: string) => void): ColumnDef<AssetDe
     {
       accessorKey: "amount",
       header: "Bakiye",
-      cell: ({ row, getValue }) => {
+      cell: ({ getValue }) => {
         // unitType dialog state'den gelecek, burada basit göster
         const v = getValue<number>();
         const cls = v >= 0 ? "text-[var(--color-alacak)]" : "text-[var(--color-borc)]";
@@ -233,13 +233,13 @@ export function PortfolioReportPage() {
           emptyMessage="Portföy verisi bulunamadı"
           exportFilename="genel-portfoy-raporu"
           exportColumns={[
-            { key: "assetTypeCode", label: "Kod" },
-            { key: "assetTypeName", label: "Varlık Adı" },
-            { key: "unitType", label: "Birim" },
-            { key: "totalPositive", label: "Toplam Alacak" },
-            { key: "totalNegative", label: "Toplam Borç" },
-            { key: "netAmount", label: "Net Durum" },
-            { key: "customerCount", label: "Müşteri Sayısı" },
+            { accessor: "assetTypeCode", header: "Kod" },
+            { accessor: "assetTypeName", header: "Varlık Adı" },
+            { accessor: "unitType", header: "Birim" },
+            { accessor: "totalPositive", header: "Toplam Alacak" },
+            { accessor: "totalNegative", header: "Toplam Borç" },
+            { accessor: "netAmount", header: "Net Durum" },
+            { accessor: "customerCount", header: "Müşteri Sayısı" },
           ]}
         />
       </div>
@@ -260,8 +260,8 @@ export function PortfolioReportPage() {
             emptyMessage="Bu varlıkta bakiyesi olan müşteri yok"
             exportFilename={`${selectedAsset?.assetTypeCode?.toLowerCase()}-dagilimi`}
             exportColumns={[
-              { key: "customerFullName", label: "Müşteri" },
-              { key: "amount", label: "Bakiye" },
+              { accessor: "customerFullName", header: "Müşteri" },
+              { accessor: "amount", header: "Bakiye" },
             ]}
           />
         </DialogContent>

@@ -1,6 +1,6 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import "tailwindcss";
 @import "@fontsource-variable/geist";
+@import "tw-animate-css";
 
 /* ── Kuyumcu Tema Özelleştirmeleri ── */
 
@@ -10,8 +10,11 @@
   --color-borc: #dc2626;          /* Kırmızı — müşteriye borç (müşteri çekti) */
   --color-alacak-bg: #f0fdf4;
   --color-borc-bg: #fef2f2;
-  --color-gold: #b8860b;          /* Altın vurgu rengi */
+  --color-gold: #d4a437;           /* Altın vurgu rengi */
   --color-gold-light: #fef3c7;
+  --color-gold-dark: #92700c;
+  --color-gold-glow: rgba(212, 164, 55, 0.15);
+  --color-gold-glow-strong: rgba(212, 164, 55, 0.35);
 }
 
 .dark {
@@ -19,19 +22,11 @@
   --color-borc: #f87171;
   --color-alacak-bg: #052e16;
   --color-borc-bg: #450a0a;
-  --color-gold: #fbbf24;
+  --color-gold: #e8b84a;
   --color-gold-light: #422006;
-}
-
-/* Büyük, okunabilir fontlar — yaşlı kullanıcılar için */
-html {
-  font-size: 17px;
-}
-
-@media (min-width: 1280px) {
-  html {
-    font-size: 18px;
-  }
+  --color-gold-dark: #b8860b;
+  --color-gold-glow: rgba(232, 184, 74, 0.1);
+  --color-gold-glow-strong: rgba(232, 184, 74, 0.25);
 }
 
 /* Tablo satırları daha rahat okunabilir olsun */
@@ -64,11 +59,11 @@ input, select, textarea {
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: 'Geist Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: 'Geist Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
+  font: 20px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
@@ -79,67 +74,38 @@ input, select, textarea {
   -moz-osx-font-smoothing: grayscale;
 
   @media (max-width: 1024px) {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   --background: oklch(1 0 0);
-
   --foreground: oklch(0.145 0 0);
-
   --card: oklch(1 0 0);
-
   --card-foreground: oklch(0.145 0 0);
-
   --popover: oklch(1 0 0);
-
   --popover-foreground: oklch(0.145 0 0);
-
   --primary: oklch(0.205 0 0);
-
   --primary-foreground: oklch(0.985 0 0);
-
   --secondary: oklch(0.97 0 0);
-
   --secondary-foreground: oklch(0.205 0 0);
-
   --muted: oklch(0.97 0 0);
-
   --muted-foreground: oklch(0.556 0 0);
-
   --accent-foreground: oklch(0.205 0 0);
-
   --destructive: oklch(0.577 0.245 27.325);
-
   --input: oklch(0.922 0 0);
-
   --ring: oklch(0.708 0 0);
-
   --chart-1: oklch(0.87 0 0);
-
   --chart-2: oklch(0.556 0 0);
-
   --chart-3: oklch(0.439 0 0);
-
   --chart-4: oklch(0.371 0 0);
-
   --chart-5: oklch(0.269 0 0);
-
   --radius: 0.625rem;
-
   --sidebar: oklch(0.985 0 0);
-
   --sidebar-foreground: oklch(0.145 0 0);
-
   --sidebar-primary: oklch(0.205 0 0);
-
   --sidebar-primary-foreground: oklch(0.985 0 0);
-
   --sidebar-accent: oklch(0.97 0 0);
-
   --sidebar-accent-foreground: oklch(0.205 0 0);
-
   --sidebar-border: oklch(0.922 0 0);
-
   --sidebar-ring: oklch(0.708 0 0)
 }
 
@@ -159,70 +125,14 @@ input, select, textarea {
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
 }
 
 @theme inline {
@@ -268,38 +178,55 @@ code {
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ── Premium Dark Theme (Kuyumcu Gold) ── */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #0c0d12;
+  --foreground: #e8e8ed;
+  --card: #14151c;
+  --card-foreground: #e8e8ed;
+  --popover: #14151c;
+  --popover-foreground: #e8e8ed;
+  --primary: #e8b84a;
+  --primary-foreground: #0c0d12;
+  --secondary: #1c1d27;
+  --secondary-foreground: #c8c8d0;
+  --muted: #1c1d27;
+  --muted-foreground: #8b8b9a;
+  --accent: #1c1d27;
+  --accent-foreground: #e8e8ed;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --border: rgba(255, 255, 255, 0.07);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: rgba(232, 184, 74, 0.3);
+  --chart-1: #e8b84a;
+  --chart-2: #4ade80;
+  --chart-3: #60a5fa;
+  --chart-4: #c084fc;
+  --chart-5: #f472b6;
+  --sidebar: #0f1016;
+  --sidebar-foreground: #c8c8d0;
+  --sidebar-primary: #e8b84a;
+  --sidebar-primary-foreground: #0c0d12;
+  --sidebar-accent: rgba(232, 184, 74, 0.08);
+  --sidebar-accent-foreground: #e8b84a;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: rgba(232, 184, 74, 0.2);
+}
+
+/* ── Custom scrollbar for dark theme ── */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 @layer base {

@@ -12,6 +12,7 @@ export interface LoginResponse {
 }
 
 export interface AuthUser {
+  id?: string;
   token: string;
   fullName: string;
   role: "Admin" | "Staff";

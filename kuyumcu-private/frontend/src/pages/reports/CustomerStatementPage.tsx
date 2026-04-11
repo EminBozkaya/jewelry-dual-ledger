@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 import { format, startOfMonth } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { FileText, Calendar } from "lucide-react";
 import { reportApi } from "@/api/reports";
 import { customerApi } from "@/api/customers";
 import type { Customer, CustomerStatement, Transaction, Balance } from "@/types";
-import { formatDate, formatTransactionType, formatAmount } from "@/lib/formatters";
+import { formatDate, formatTransactionType } from "@/lib/formatters";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
@@ -108,7 +108,6 @@ function BalanceRow({ balance }: { balance: Balance }) {
 
 // ── CustomerStatementPage ─────────────────────────────────────
 export function CustomerStatementPage() {
-  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerOpen, setCustomerOpen] = useState(false);
@@ -123,9 +122,9 @@ export function CustomerStatementPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    customerApi.getAll().catch(() => toast.error("Müşteriler yüklenemedi")).then((data) => {
-      if (data) setCustomers(data);
-    });
+    customerApi.getAll().then((data) => {
+      setCustomers(data);
+    }).catch(() => toast.error("Müşteriler yüklenemedi"));
   }, []);
 
   const generateReport = () => {
@@ -152,17 +151,17 @@ export function CustomerStatementPage() {
       {/* Filtreler */}
       <Card>
         <CardContent className="pt-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end">
             {/* Müşteri seçici */}
-            <div className="flex-1 space-y-1">
+            <div className="flex-1 min-w-[250px] flex flex-col gap-1.5">
               <label className="text-sm font-medium">Müşteri</label>
               <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                  <Button variant="outline" className="w-full justify-start text-left font-normal cursor-pointer">
                     {selectedCustomer ? selectedCustomer.fullName : "Müşteri seçin..."}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-72 p-0" align="start">
+                <PopoverContent className="w-80 p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Müşteri ara..." />
                     <CommandList>
@@ -190,11 +189,11 @@ export function CustomerStatementPage() {
             </div>
 
             {/* Başlangıç tarihi */}
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1.5 w-full md:w-auto">
               <label className="text-sm font-medium">Başlangıç</label>
               <Popover open={fromOpen} onOpenChange={setFromOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2 w-40">
+                  <Button variant="outline" className="gap-2 w-full md:w-40 cursor-pointer">
                     <Calendar className="h-4 w-4" />
                     {format(fromDate, "dd.MM.yyyy")}
                   </Button>
@@ -211,11 +210,11 @@ export function CustomerStatementPage() {
             </div>
 
             {/* Bitiş tarihi */}
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1.5 w-full md:w-auto">
               <label className="text-sm font-medium">Bitiş</label>
               <Popover open={toOpen} onOpenChange={setToOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2 w-40">
+                  <Button variant="outline" className="gap-2 w-full md:w-40 cursor-pointer">
                     <Calendar className="h-4 w-4" />
                     {format(toDate, "dd.MM.yyyy")}
                   </Button>
@@ -231,14 +230,16 @@ export function CustomerStatementPage() {
               </Popover>
             </div>
 
-            <Button
-              className="gap-2 min-h-10"
-              onClick={generateReport}
-              disabled={!selectedCustomer || loading}
-            >
-              <FileText className="h-4 w-4" />
-              Rapor Oluştur
-            </Button>
+            <div className="flex-[1_1_100%] xl:flex-[0_1_auto] flex justify-center xl:justify-start mt-2 xl:mt-0">
+              <Button
+                className="gap-2 min-h-10 w-full sm:w-64 xl:w-auto cursor-pointer"
+                onClick={generateReport}
+                disabled={!selectedCustomer || loading}
+              >
+                <FileText className="h-4 w-4" />
+                Rapor Oluştur
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -332,11 +333,11 @@ export function CustomerStatementPage() {
               emptyMessage="Bu dönemde işlem bulunmuyor"
               exportFilename={`ekstre-${statement.customer.fullName.replace(/\s+/g, "-").toLowerCase()}-${format(new Date(statement.period.from), "yyyy-MM")}`}
               exportColumns={[
-                { key: "createdAt", label: "Tarih" },
-                { key: "type", label: "Tür" },
-                { key: "assetTypeName", label: "Varlık" },
-                { key: "amount", label: "Miktar" },
-                { key: "description", label: "Açıklama" },
+                { accessor: "createdAt", header: "Tarih" },
+                { accessor: "type", header: "Tür" },
+                { accessor: "assetTypeName", header: "Varlık" },
+                { accessor: "amount", header: "Miktar" },
+                { accessor: "description", header: "Açıklama" },
               ]}
             />
           </div>

@@ -7,7 +7,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Plus, Pencil, KeyRound, PowerOff, Power } from "lucide-react";
 
 import { userApi, type UserUpdateRequest } from "@/api/users";
-import type { User, UserCreateRequest } from "@/types";
+import type { User } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 
 import { PageHeader } from "@/components/shared/PageHeader";

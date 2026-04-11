@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight, Calendar, ArrowDown, ArrowUp, ArrowLeftRight
 
 import { reportApi } from "@/api/reports";
 import type { DailyReport, Transaction } from "@/types";
-import { formatDate, formatTransactionType, formatAmount } from "@/lib/formatters";
+import { formatTransactionType } from "@/lib/formatters";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
@@ -278,13 +278,13 @@ export function DailyReportPage() {
           emptyMessage="Bu tarihte işlem bulunmuyor"
           exportFilename={`gunluk-rapor-${format(selectedDate, "yyyy-MM-dd")}`}
           exportColumns={[
-            { key: "createdAt", label: "Tarih/Saat" },
-            { key: "customerFullName", label: "Müşteri" },
-            { key: "type", label: "İşlem Türü" },
-            { key: "assetTypeName", label: "Varlık" },
-            { key: "amount", label: "Miktar" },
-            { key: "description", label: "Açıklama" },
-            { key: "createdByFullName", label: "İşlemi Yapan" },
+            { accessor: "createdAt", header: "Tarih/Saat" },
+            { accessor: "customerFullName", header: "Müşteri" },
+            { accessor: "type", header: "İşlem Türü" },
+            { accessor: "assetTypeName", header: "Varlık" },
+            { accessor: "amount", header: "Miktar" },
+            { accessor: "description", header: "Açıklama" },
+            { accessor: "createdByFullName", header: "İşlemi Yapan" },
           ]}
         />
       </div>

@@ -4,7 +4,8 @@ export function useDarkMode() {
   const [isDark, setIsDark] = useState<boolean>(() => {
     const stored = localStorage.getItem("theme");
     if (stored) return stored === "dark";
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    // Kuyumcu uygulaması için varsayılan dark mod
+    return true;
   });
 
   useEffect(() => {

@@ -81,20 +81,20 @@ export function ExportButtons({ data, columns, filename }: ExportButtonsProps) {
         size="sm"
         onClick={() => exportExcel(data, columns, filename)}
         disabled={data.length === 0}
-        className="gap-2"
+        className="gap-2 border-green-200/60 bg-green-50/50 hover:bg-green-100 dark:border-green-900/30 dark:bg-green-950/20 dark:hover:bg-green-900/40 text-green-700 dark:text-green-500 hover:text-green-800 dark:hover:text-green-400 shadow-sm cursor-pointer transition-all hover:scale-105"
       >
         <FileSpreadsheet className="h-4 w-4" />
-        <span className="hidden sm:inline">Excel</span>
+        <span className="hidden sm:inline font-semibold">Excel</span>
       </Button>
       <Button
         variant="outline"
         size="sm"
         onClick={() => exportPdf(data, columns, filename)}
         disabled={data.length === 0}
-        className="gap-2"
+        className="gap-2 border-red-200/60 bg-red-50/50 hover:bg-red-100 dark:border-red-900/30 dark:bg-red-950/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 shadow-sm cursor-pointer transition-all hover:scale-105"
       >
         <FileText className="h-4 w-4" />
-        <span className="hidden sm:inline">PDF</span>
+        <span className="hidden sm:inline font-semibold">PDF</span>
       </Button>
     </div>
   );

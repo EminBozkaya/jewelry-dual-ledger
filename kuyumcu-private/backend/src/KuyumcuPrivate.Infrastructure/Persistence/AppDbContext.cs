@@ -90,7 +90,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             Id           = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             FullName     = "Sistem Yöneticisi",
             Username     = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+            PasswordHash = "$2a$11$Hlu3yqAS8.BJeHGwZmW06eSSS7dZnaVQNyHwgbN.AbW9G0ly4waj2",
             Role         = UserRole.Admin,
             IsActive     = true
         });
