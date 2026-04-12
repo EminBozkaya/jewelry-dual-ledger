@@ -237,18 +237,14 @@ export function LoginPage() {
           width: 100%;
           max-width: 420px;
           border-radius: 20px;
-          border: 1px solid rgba(212, 164, 55, 0.15);
-          background: rgba(18, 18, 26, 0.85);
-          backdrop-filter: blur(40px);
-          -webkit-backdrop-filter: blur(40px);
-          box-shadow:
-            0 0 0 1px rgba(212, 164, 55, 0.05),
-            0 25px 60px rgba(0, 0, 0, 0.5),
-            0 0 120px rgba(184, 134, 11, 0.05);
           padding: 3rem 2.5rem 2.5rem;
           opacity: 0;
           transform: translateY(24px) scale(0.97);
           animation: loginCardIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          overflow: hidden;
+          box-shadow:
+            0 25px 60px rgba(0, 0, 0, 0.6),
+            0 0 120px rgba(184, 134, 11, 0.08);
         }
         .login-card.mounted {
           animation-play-state: running;
@@ -261,16 +257,41 @@ export function LoginPage() {
           }
         }
 
-        /* Top border glow */
+        /* Inner background masking the spinning light to create a 1px border */
         .login-card::before {
           content: '';
           position: absolute;
-          top: -1px;
-          left: 20%;
-          right: 20%;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, rgba(212, 164, 55, 0.6), transparent);
-          border-radius: 2px;
+          inset: 1px;
+          border-radius: 19px;
+          background: rgba(18, 18, 26, 0.85);
+          backdrop-filter: blur(40px);
+          -webkit-backdrop-filter: blur(40px);
+          z-index: -1;
+        }
+        
+        /* The spinning border light */
+        .login-card::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 200%;
+          height: 200%;
+          background: conic-gradient(
+            from 180deg at 50% 50%,
+            rgba(212, 164, 55, 0.15) 0deg,
+            rgba(212, 164, 55, 0.15) 280deg,
+            rgba(212, 164, 55, 0.5) 340deg,
+            #f5d16e 360deg
+          );
+          transform: translate(-50%, -50%);
+          animation: borderLightSpin 10s linear infinite;
+          z-index: -2;
+        }
+
+        @keyframes borderLightSpin {
+          0% { transform: translate(-50%, -50%) rotate(0deg); }
+          100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
 
         /* Logo */
@@ -496,7 +517,7 @@ export function LoginPage() {
         <div className={`login-card ${mounted ? "mounted" : ""}`}>
           <DiamondLogo />
 
-          <h1 className="login-heading">Kuyumcu Özel Cari</h1>
+          <h1 className="login-heading">Cari Özel</h1>
           <p className="login-subtitle">Hesabınıza giriş yapın</p>
 
           <form onSubmit={handleSubmit(onSubmit)}>

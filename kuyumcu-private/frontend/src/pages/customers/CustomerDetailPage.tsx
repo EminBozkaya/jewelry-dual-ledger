@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Pencil, Trash2, Upload, Banknote, ArrowUpFromLine, RefreshCw } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -14,8 +14,10 @@ import { assetTypeApi } from "@/api/asset-types";
 import type { AssetType, Customer, Balance, Transaction, CustomerUpdateRequest } from "@/types";
 import { formatDate, formatDateShort, formatTransactionType, formatAmount } from "@/lib/formatters";
 import { useAuth } from "@/hooks/useAuth";
+import { isValidTC } from "@/lib/validations";
 
 import { PageHeader } from "@/components/shared/PageHeader";
+import { PhoneInput } from "@/components/shared/PhoneInput";
 import { AmountDisplay } from "@/components/shared/AmountDisplay";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable } from "@/components/shared/DataTable";
@@ -49,13 +51,30 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 // ── Zod schema ─────────────────────────────────────────────────
 const schema = z.object({
-  firstName: z.string().min(2, "En az 2 karakter"),
-  lastName: z.string().min(2, "En az 2 karakter"),
-  phone: z.string().min(10, "En az 10 karakter"),
+  firstName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
+  lastName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
+  phone: z.string().superRefine((val, ctx) => {
+    if (!val) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Telefon zorunludur" });
+      return;
+    }
+    const parts = val.split(" ");
+    const code = parts[0];
+    const num = parts.slice(1).join("").replace(/\D/g, "");
+    if (code === "+90") {
+      if (num.length !== 10) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "10 haneli telefon numarası girmelisiniz" });
+      }
+    } else {
+      if (num.length < 5) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Geçerli bir telefon numarası giriniz" });
+      }
+    }
+  }),
   nationalId: z
     .string()
     .optional()
-    .refine((v) => !v || /^\d{11}$/.test(v), "11 rakam olmalı"),
+    .refine((v) => !v || isValidTC(v), "Geçerli bir TC Kimlik No giriniz"),
   email: z
     .string()
     .optional()
@@ -215,6 +234,7 @@ export function CustomerDetailPage() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
@@ -826,14 +846,14 @@ export function CustomerDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Ad *</Label>
-                <Input {...register("firstName")} />
+                <Input {...register("firstName")} maxLength={50} />
                 {errors.firstName && (
                   <p className="text-xs text-destructive">{errors.firstName.message}</p>
                 )}
               </div>
               <div className="space-y-1.5">
                 <Label>Soyad *</Label>
-                <Input {...register("lastName")} />
+                <Input {...register("lastName")} maxLength={50} />
                 {errors.lastName && (
                   <p className="text-xs text-destructive">{errors.lastName.message}</p>
                 )}
@@ -841,7 +861,17 @@ export function CustomerDetailPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Telefon *</Label>
-              <Input {...register("phone")} />
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field }) => (
+                  <PhoneInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
               {errors.phone && (
                 <p className="text-xs text-destructive">{errors.phone.message}</p>
               )}

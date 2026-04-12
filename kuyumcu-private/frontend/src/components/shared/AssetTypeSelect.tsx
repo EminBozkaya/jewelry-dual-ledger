@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { ChevronsUpDown } from "lucide-react";
 
 import type { AssetType } from "@/types";
@@ -81,7 +81,7 @@ export function AssetTypeSelect({
   return (
     <div className="space-y-1.5">
       {label && <Label>{label}</Label>}
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={true}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -108,9 +108,9 @@ export function AssetTypeSelect({
               <CommandEmpty>Sonuç bulunamadı.</CommandEmpty>
 
               {groups.map((g, gi) => (
-                <>
-                  {gi > 0 && <CommandSeparator key={`sep-${gi}`} />}
-                  <CommandGroup key={g.label} heading={g.label}>
+                <Fragment key={g.label}>
+                  {gi > 0 && <CommandSeparator />}
+                  <CommandGroup heading={g.label}>
                     {g.items.map((a) => {
                       const isDisabled = disabledIds.includes(a.id);
                       return (
@@ -136,7 +136,7 @@ export function AssetTypeSelect({
                       );
                     })}
                   </CommandGroup>
-                </>
+                </Fragment>
               ))}
 
               {ungrouped.length > 0 && (

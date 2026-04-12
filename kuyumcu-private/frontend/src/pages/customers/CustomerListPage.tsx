@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Users } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -10,6 +10,8 @@ import { customerApi } from "@/api/customers";
 import type { Customer, CustomerCreateRequest } from "@/types";
 import { formatDateShort } from "@/lib/formatters";
 
+import { isValidTC } from "@/lib/validations";
+import { PhoneInput } from "@/components/shared/PhoneInput";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,13 +32,30 @@ import type { ExportColumn } from "@/components/shared/ExportButtons";
 
 // ── Zod schema ────────────────────────────────────────────────
 const schema = z.object({
-  firstName: z.string().min(2, "En az 2 karakter"),
-  lastName: z.string().min(2, "En az 2 karakter"),
-  phone: z.string().min(10, "En az 10 karakter"),
+  firstName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
+  lastName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
+  phone: z.string().superRefine((val, ctx) => {
+    if (!val) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Telefon zorunludur" });
+      return;
+    }
+    const parts = val.split(" ");
+    const code = parts[0];
+    const num = parts.slice(1).join("").replace(/\D/g, "");
+    if (code === "+90") {
+      if (num.length !== 10) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "10 haneli telefon numarası girmelisiniz" });
+      }
+    } else {
+      if (num.length < 5) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Geçerli bir telefon numarası giriniz" });
+      }
+    }
+  }),
   nationalId: z
     .string()
     .optional()
-    .refine((v) => !v || /^\d{11}$/.test(v), "11 rakam olmalı"),
+    .refine((v) => !v || isValidTC(v), "Geçerli bir TC Kimlik No giriniz"),
   email: z.string().optional().refine((v) => !v || z.string().email().safeParse(v).success, "Geçerli e-posta"),
   address: z.string().optional(),
   notes: z.string().optional(),
@@ -101,6 +120,7 @@ export function CustomerListPage() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
@@ -182,14 +202,14 @@ export function CustomerListPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="firstName">Ad *</Label>
-                <Input id="firstName" {...register("firstName")} />
+                <Input id="firstName" {...register("firstName")} maxLength={50} />
                 {errors.firstName && (
                   <p className="text-xs text-destructive">{errors.firstName.message}</p>
                 )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lastName">Soyad *</Label>
-                <Input id="lastName" {...register("lastName")} />
+                <Input id="lastName" {...register("lastName")} maxLength={50} />
                 {errors.lastName && (
                   <p className="text-xs text-destructive">{errors.lastName.message}</p>
                 )}
@@ -198,7 +218,18 @@ export function CustomerListPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="phone">Telefon *</Label>
-              <Input id="phone" {...register("phone")} placeholder="05xx xxx xx xx" />
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field }) => (
+                  <PhoneInput
+                    id="phone"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
               {errors.phone && (
                 <p className="text-xs text-destructive">{errors.phone.message}</p>
               )}
