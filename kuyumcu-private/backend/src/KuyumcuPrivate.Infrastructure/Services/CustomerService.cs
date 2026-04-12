@@ -1,6 +1,7 @@
 using KuyumcuPrivate.Application.DTOs.Customers;
 using KuyumcuPrivate.Application.Interfaces;
 using KuyumcuPrivate.Domain.Entities;
+using KuyumcuPrivate.Domain.Enums;
 using KuyumcuPrivate.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,10 +9,18 @@ namespace KuyumcuPrivate.Infrastructure.Services;
 
 public class CustomerService(AppDbContext db) : ICustomerService
 {
-    public async Task<List<CustomerResponse>> GetAllAsync()
+    public async Task<List<CustomerResponse>> GetAllAsync(bool? includeDeleted = false)
     {
+        // includeDeleted: null = tümü, true = sadece silinenler, false = sadece aktifler
+        IQueryable<Customer> query = includeDeleted switch
+        {
+            null  => db.Customers.IgnoreQueryFilters(),           // Tümü (aktif + silinmiş)
+            true  => db.Customers.IgnoreQueryFilters().Where(c => c.IsDeleted), // Sadece silinenler
+            false => db.Customers,                                 // Sadece aktifler (global filtre geçerli)
+        };
+
         // İnline projeksiyon: EF Core bunu SQL'e çevirebilir ve Photo blob'unu yüklemez
-        return await db.Customers
+        return await query
             .OrderBy(c => c.LastName).ThenBy(c => c.FirstName)
             .Select(c => new CustomerResponse(
                 c.Id,
@@ -25,6 +34,7 @@ public class CustomerService(AppDbContext db) : ICustomerService
                 c.Type,
                 c.Notes,
                 c.Photo != null,
+                c.IsDeleted,
                 c.CreatedAt
             ))
             .ToListAsync();
@@ -32,7 +42,7 @@ public class CustomerService(AppDbContext db) : ICustomerService
 
     public async Task<CustomerResponse?> GetByIdAsync(Guid id)
     {
-        var c = await db.Customers.FindAsync(id);
+        var c = await db.Customers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == id);
         return c is null ? null : ToResponse(c);
     }
 
@@ -101,6 +111,49 @@ public class CustomerService(AppDbContext db) : ICustomerService
         return true;
     }
 
+    public async Task<bool> RestoreAsync(Guid id, bool resetBalances, Guid userId)
+    {
+        var customer = await db.Customers.IgnoreQueryFilters()
+            .Include(c => c.Balances)
+            .FirstOrDefaultAsync(c => c.Id == id);
+            
+        if (customer is null || !customer.IsDeleted) return false;
+
+        customer.IsDeleted = false;
+
+        if (resetBalances)
+        {
+            var activeBalances = customer.Balances.Where(b => b.Amount != 0).ToList();
+            foreach (var b in activeBalances)
+            {
+                // Bakiyeyi sıfırlayacak ters işlem miktarı
+                var adjustmentAmount = -b.Amount;
+                var type = adjustmentAmount > 0 ? TransactionType.Deposit : TransactionType.Withdrawal;
+                var absoluteAmount = Math.Abs(adjustmentAmount);
+
+                var tx = new Transaction
+                {
+                    CustomerId = id,
+                    AssetTypeId = b.AssetTypeId,
+                    Amount = absoluteAmount,
+                    Type = type,
+                    Description = "Hesaba ait varlık durumları, müşterinin pasiften aktife alınmasıyla birlikte sıfırlandı.",
+                    CreatedBy = userId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                db.Transactions.Add(tx);
+
+                // Bakiyeyi sıfırla
+                b.Amount = 0;
+                b.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        await db.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<bool> UploadPhotoAsync(Guid id, byte[] photoBytes, string contentType)
     {
         var customer = await db.Customers.FindAsync(id);
@@ -146,6 +199,7 @@ public class CustomerService(AppDbContext db) : ICustomerService
         Type:        c.Type,
         Notes:       c.Notes,
         HasPhoto:    c.Photo is not null,
+        IsDeleted:   c.IsDeleted,
         CreatedAt:   c.CreatedAt
     );
 }

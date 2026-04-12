@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Plus, Pencil, PowerOff, Power, Trash2, GripVertical } from "lucide-react";
 
 import {
@@ -93,10 +94,11 @@ function TypeBadge({ name, colorHex }: { name: string; colorHex: string }) {
 }
 
 function StatusBadge({ isActive }: { isActive: boolean }) {
+  const { t } = useTranslation();
   return isActive ? (
-    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400">Aktif</Badge>
+    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400">{t("assetTypes.status.active")}</Badge>
   ) : (
-    <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100 dark:bg-gray-800/50 dark:text-gray-400">Pasif</Badge>
+    <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100 dark:bg-gray-800/50 dark:text-gray-400">{t("assetTypes.status.inactive")}</Badge>
   );
 }
 
@@ -137,6 +139,7 @@ function SortableRow({ id, disabled, children }: SortableRowProps) {
 
 // ── CustomerTypeManagementPage ───────────────────────────────
 export function CustomerTypeManagementPage() {
+  const { t } = useTranslation();
   const [types, setTypes] = useState<CustomerTypeConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -157,7 +160,7 @@ export function CustomerTypeManagementPage() {
     customerTypeApi
       .getAllIncludingInactive()
       .then(setTypes)
-      .catch(() => toast.error("Müşteri tipleri yüklenemedi"))
+      .catch(() => toast.error(t("customerTypes.loadError")))
       .finally(() => setLoading(false));
   };
 
@@ -177,8 +180,8 @@ export function CustomerTypeManagementPage() {
     if (!over || active.id === over.id) return;
     if (statusFilter !== "all") return;
 
-    const oldIndex = types.findIndex((t) => t.id === active.id);
-    const newIndex = types.findIndex((t) => t.id === over.id);
+    const oldIndex = types.findIndex((ct) => ct.id === active.id);
+    const newIndex = types.findIndex((ct) => ct.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
     const reordered = arrayMove(types, oldIndex, newIndex);
@@ -188,10 +191,10 @@ export function CustomerTypeManagementPage() {
     setReordering(true);
 
     try {
-      await customerTypeApi.reorder(withNewOrder.map((t) => ({ id: t.id, sortOrder: t.sortOrder })));
-      toast.success("Sıralama kaydedildi");
+      await customerTypeApi.reorder(withNewOrder.map((ct) => ({ id: ct.id, sortOrder: ct.sortOrder })));
+      toast.success(t("assetTypes.reorderSuccess"));
     } catch {
-      toast.error("Sıralama kaydedilemedi");
+      toast.error(t("assetTypes.reorderError"));
       loadData();
     } finally {
       setReordering(false);
@@ -215,13 +218,13 @@ export function CustomerTypeManagementPage() {
         colorHex: data.colorHex || "#6b7280",
       };
       await customerTypeApi.create(payload);
-      toast.success("Müşteri tipi oluşturuldu");
+      toast.success(t("customerTypes.createSuccess"));
       setCreateOpen(false);
       createForm.reset();
       loadData();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(msg ?? "Müşteri tipi oluşturulamadı");
+      toast.error(msg ?? t("customerTypes.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -249,12 +252,12 @@ export function CustomerTypeManagementPage() {
         colorHex: data.colorHex || "#6b7280",
       };
       await customerTypeApi.update(editItem.id, payload);
-      toast.success("Müşteri tipi güncellendi");
+      toast.success(t("customerTypes.updateSuccess"));
       setEditItem(null);
       loadData();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(msg ?? "Güncelleme başarısız");
+      toast.error(msg ?? t("customerTypes.updateError"));
     } finally {
       setSubmitting(false);
     }
@@ -265,11 +268,11 @@ export function CustomerTypeManagementPage() {
     setSubmitting(true);
     try {
       await customerTypeApi.toggleActive(toggleItem.id);
-      toast.success(toggleItem.isActive ? "Pasife alındı" : "Aktif edildi");
+      toast.success(toggleItem.isActive ? t("assetTypes.deactivateSuccess") : t("assetTypes.activateSuccess"));
       setToggleItem(null);
       loadData();
     } catch {
-      toast.error("İşlem başarısız");
+      toast.error(t("customerTypes.toggleError"));
     } finally {
       setSubmitting(false);
     }
@@ -285,19 +288,19 @@ export function CustomerTypeManagementPage() {
       loadData();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(msg ?? "Silme işlemi başarısız");
+      toast.error(msg ?? t("customerTypes.deleteError"));
     } finally {
       setSubmitting(false);
     }
   };
 
   // ── Filtre + arama ─────────────────────────────────────────
-  const displayedItems = types.filter((t) => {
-    if (statusFilter === "active" && !t.isActive) return false;
-    if (statusFilter === "inactive" && t.isActive) return false;
+  const displayedItems = types.filter((ct) => {
+    if (statusFilter === "active" && !ct.isActive) return false;
+    if (statusFilter === "inactive" && ct.isActive) return false;
     if (searchQuery) {
       const q = searchQuery.toLocaleLowerCase("tr-TR");
-      return t.name.toLocaleLowerCase("tr-TR").includes(q);
+      return ct.name.toLocaleLowerCase("tr-TR").includes(q);
     }
     return true;
   });
@@ -367,8 +370,8 @@ export function CustomerTypeManagementPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Müşteri Tipleri"
-        description="Sistemde tanımlı müşteri kategorilerini yönetin — Özel müşteri, kuyumcu, tedarikçi ve diğerleri"
+        title={t("customerTypes.title")}
+        description={t("customerTypes.description")}
         actions={
           <div className="flex items-center gap-3">
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}>
@@ -376,14 +379,14 @@ export function CustomerTypeManagementPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tümü ({types.length})</SelectItem>
-                <SelectItem value="active">Aktif ({types.filter(t => t.isActive).length})</SelectItem>
-                <SelectItem value="inactive">Pasif ({types.filter(t => !t.isActive).length})</SelectItem>
+                <SelectItem value="all">{t("assetTypes.filter.all")} ({types.length})</SelectItem>
+                <SelectItem value="active">{t("assetTypes.filter.active")} ({types.filter(ct => ct.isActive).length})</SelectItem>
+                <SelectItem value="inactive">{t("assetTypes.filter.inactive")} ({types.filter(ct => !ct.isActive).length})</SelectItem>
               </SelectContent>
             </Select>
             <Button className="gap-2" onClick={() => { setCreateOpen(true); createForm.reset({ value: undefined, name: "", colorHex: "#6b7280" }); }}>
               <Plus className="h-4 w-4" />
-              Yeni Müşteri Tipi
+              {t("customerTypes.newType")}
             </Button>
           </div>
         }
@@ -394,19 +397,19 @@ export function CustomerTypeManagementPage() {
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Müşteri tipi ara..."
+            placeholder={t("assetTypes.searchPlaceholder")}
             className="w-full sm:max-w-xs"
           />
           {!dragEnabled && !loading ? (
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? "Arama sırasında sıralama devre dışı" : "Sıralama için «Tümü» görünümünü seçin"}
+              {searchQuery ? t("assetTypes.searchDisabled") : t("assetTypes.selectAllFirst")}
             </p>
           ) : (
             !loading && (
               <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                 <GripVertical className="h-4 w-4" />
-                Satırları tutup sürükleyerek sıralamayı değiştirin
-                {reordering && " · kaydediliyor..."}
+                {t("assetTypes.dragHint")}
+                {reordering && ` · ${t("assetTypes.reordering")}`}
               </p>
             )
           )}
@@ -428,8 +431,8 @@ export function CustomerTypeManagementPage() {
                   <TableHead>Ad</TableHead>
                   <TableHead>Görünüm</TableHead>
                   <TableHead>Renk</TableHead>
-                  <TableHead>Durum</TableHead>
-                  <TableHead>İşlemler</TableHead>
+                  <TableHead>{t("assetTypes.columns.status")}</TableHead>
+                  <TableHead>{t("assetTypes.columns.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -449,7 +452,7 @@ export function CustomerTypeManagementPage() {
                   </TableRow>
                 ) : (
                   <SortableContext
-                    items={displayedItems.map((t) => t.id)}
+                    items={displayedItems.map((ct) => ct.id)}
                     strategy={verticalListSortingStrategy}
                   >
                     {displayedItems.map((item) => (
@@ -498,7 +501,7 @@ export function CustomerTypeManagementPage() {
                                       <Pencil className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Düzenle</TooltipContent>
+                                  <TooltipContent>{t("assetTypes.actions.edit")}</TooltipContent>
                                 </Tooltip>
 
                                 <Tooltip>
@@ -512,7 +515,7 @@ export function CustomerTypeManagementPage() {
                                       {item.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>{item.isActive ? "Pasife Al" : "Aktif Et"}</TooltipContent>
+                                  <TooltipContent>{item.isActive ? t("assetTypes.actions.deactivate") : t("assetTypes.actions.activate")}</TooltipContent>
                                 </Tooltip>
 
                                 <Tooltip>
@@ -526,7 +529,7 @@ export function CustomerTypeManagementPage() {
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Sil</TooltipContent>
+                                  <TooltipContent>{t("assetTypes.actions.delete")}</TooltipContent>
                                 </Tooltip>
                               </div>
                             </TableCell>
@@ -542,7 +545,7 @@ export function CustomerTypeManagementPage() {
         </div>
 
         {!loading && displayedItems.length > 0 && (
-          <p className="text-sm text-muted-foreground">{displayedItems.length} kayıt gösteriliyor</p>
+          <p className="text-sm text-muted-foreground">{displayedItems.length} {t("assetTypes.recordsShown")}</p>
         )}
       </div>
 
@@ -550,7 +553,7 @@ export function CustomerTypeManagementPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>Yeni Müşteri Tipi</DialogTitle>
+            <DialogTitle>{t("customerTypes.newType")}</DialogTitle>
           </DialogHeader>
           <form
             onSubmit={createForm.handleSubmit(handleCreate as unknown as Parameters<typeof createForm.handleSubmit>[0])}
@@ -558,8 +561,8 @@ export function CustomerTypeManagementPage() {
           >
             {renderFormFields(createForm, true)}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>İptal</Button>
-              <Button type="submit" disabled={submitting}>{submitting ? "Kaydediliyor..." : "Oluştur"}</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t("common.cancel")}</Button>
+              <Button type="submit" disabled={submitting}>{submitting ? t("common.saving") : t("assetTypes.form.create")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -569,7 +572,7 @@ export function CustomerTypeManagementPage() {
       <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>Müşteri Tipi Düzenle — {editItem?.name}</DialogTitle>
+            <DialogTitle>{t("common.edit")} — {editItem?.name}</DialogTitle>
           </DialogHeader>
           <form
             onSubmit={editForm.handleSubmit(handleEdit as unknown as Parameters<typeof editForm.handleSubmit>[0])}
@@ -577,8 +580,8 @@ export function CustomerTypeManagementPage() {
           >
             {renderFormFields(editForm, false)}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditItem(null)}>İptal</Button>
-              <Button type="submit" disabled={submitting}>{submitting ? "Kaydediliyor..." : "Güncelle"}</Button>
+              <Button type="button" variant="outline" onClick={() => setEditItem(null)}>{t("common.cancel")}</Button>
+              <Button type="submit" disabled={submitting}>{submitting ? t("common.saving") : t("assetTypes.form.save")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -588,13 +591,13 @@ export function CustomerTypeManagementPage() {
       <ConfirmDialog
         open={!!toggleItem}
         onOpenChange={(open) => !open && setToggleItem(null)}
-        title={toggleItem?.isActive ? "Müşteri Tipini Pasife Al" : "Müşteri Tipini Aktif Et"}
+        title={toggleItem?.isActive ? t("assetTypes.toggleConfirm.deactivateTitle") : t("assetTypes.toggleConfirm.activateTitle")}
         description={
           toggleItem?.isActive
             ? `"${toggleItem?.name}" pasif yapılacak. Yeni müşterilerde seçilemez hale gelir.`
             : `"${toggleItem?.name}" tekrar aktif edilecek.`
         }
-        confirmLabel={toggleItem?.isActive ? "Pasife Al" : "Aktif Et"}
+        confirmLabel={toggleItem?.isActive ? t("assetTypes.toggleConfirm.deactivateBtn") : t("assetTypes.toggleConfirm.activateBtn")}
         destructive={!!toggleItem?.isActive}
         onConfirm={handleToggle}
       />
@@ -603,9 +606,9 @@ export function CustomerTypeManagementPage() {
       <ConfirmDialog
         open={!!deleteItem}
         onOpenChange={(open) => !open && setDeleteItem(null)}
-        title="Müşteri Tipini Sil"
+        title={t("assetTypes.deleteConfirm.title")}
         description={`"${deleteItem?.name}" silinecek. Eğer bu tipte kayıtlı müşteri varsa kalıcı olarak silinmez — otomatik olarak pasife alınır.`}
-        confirmLabel="Sil"
+        confirmLabel={t("assetTypes.deleteConfirm.button")}
         destructive
         onConfirm={handleDelete}
       />

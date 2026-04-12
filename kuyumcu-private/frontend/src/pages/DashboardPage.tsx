@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Users,
   Activity,
@@ -17,8 +18,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { dashboardApi, type DashboardSummary } from "@/api/dashboard";
 import { reportApi } from "@/api/reports";
-import type { Transaction, PortfolioAsset } from "@/types";
+import { assetTypeApi } from "@/api/asset-types";
+import type { Transaction, PortfolioAsset, AssetType, Balance } from "@/types";
 import { formatDate, formatTransactionType } from "@/lib/formatters";
+import { OzetBakiyeModal } from "@/components/shared/OzetBakiyeModal";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { AmountDisplay } from "@/components/shared/AmountDisplay";
@@ -98,22 +101,21 @@ interface AssetGroup {
   items: PortfolioAsset[];
 }
 
-function groupPortfolioAssets(assets: PortfolioAsset[]): AssetGroup[] {
+function groupPortfolioAssets(assets: PortfolioAsset[], tFn: (key: string) => string): AssetGroup[] {
   const doviz = assets.filter((a) => a.unitType === "Currency");
   const altin = assets.filter((a) => a.unitType === "Piece" || (a.unitType === "Gram" && a.assetTypeCode !== "SILVER"));
   const diger = assets.filter((a) => a.unitType === "Gram" && a.assetTypeCode === "SILVER");
 
-  // If nothing in diger, put all remaining Gram types that aren't in altin
   const groups: AssetGroup[] = [];
 
   if (doviz.length > 0) {
-    groups.push({ label: "Döviz", icon: Banknote, accentColor: "#4ade80", items: doviz });
+    groups.push({ label: tFn("portfolio.groups.currency"), icon: Banknote, accentColor: "#4ade80", items: doviz });
   }
   if (altin.length > 0) {
-    groups.push({ label: "Altın", icon: Coins, accentColor: "var(--color-gold)", items: altin });
+    groups.push({ label: tFn("portfolio.groups.gold"), icon: Coins, accentColor: "var(--color-gold)", items: altin });
   }
   if (diger.length > 0) {
-    groups.push({ label: "Diğer", icon: Scale, accentColor: "#60a5fa", items: diger });
+    groups.push({ label: tFn("portfolio.groups.other"), icon: Scale, accentColor: "#60a5fa", items: diger });
   }
 
   return groups;
@@ -198,62 +200,70 @@ function PortfolioGroupSection({ group }: { group: AssetGroup }) {
   );
 }
 
-// ── Son işlemler sütunları ────────────────────────────────────
-const recentColumns: ColumnDef<Transaction>[] = [
-  {
-    accessorKey: "createdAt",
-    header: "Tarih",
-    cell: ({ getValue }) => <span className="text-sm">{formatDate(getValue<string>())}</span>,
-  },
-  {
-    accessorKey: "customerFullName",
-    header: "Müşteri",
-    cell: ({ getValue }) => <span className="font-medium text-sm">{getValue<string>()}</span>,
-  },
-  {
-    accessorKey: "type",
-    header: "İşlem",
-    cell: ({ getValue }) => <TxTypeBadge type={getValue<string>()} />,
-  },
-  {
-    id: "asset",
-    header: "Varlık",
-    enableSorting: false,
-    cell: ({ row }) => {
-      const t = row.original;
-      if (t.type === "Conversion" && t.conversion) {
-        return <span className="text-sm text-muted-foreground">{t.conversion.fromAssetCode} → {t.conversion.toAssetCode}</span>;
-      }
-      return <span className="text-sm text-muted-foreground">{t.assetTypeName ?? "—"}</span>;
+// ── Son işlemler sütunları — t fonksiyonu bileşen içinde kullanılacak ────────────────────────────────────
+function buildRecentColumns(t: (key: string) => string): ColumnDef<Transaction>[] {
+  return [
+    {
+      accessorKey: "createdAt",
+      header: t("dashboard.overview") === "Overview" ? "Date" : "Tarih",
+      cell: ({ getValue }) => <span className="text-sm">{formatDate(getValue<string>())}</span>,
     },
-  },
-  {
-    accessorKey: "createdByFullName",
-    header: "İşlemi Yapan",
-    enableSorting: false,
-    cell: ({ getValue }) => (
-      <span className="hidden md:block text-sm text-muted-foreground">{getValue<string>()}</span>
-    ),
-  },
-];
+    {
+      accessorKey: "customerFullName",
+      header: t("customers.columns.name"),
+      cell: ({ getValue }) => <span className="font-medium text-sm">{getValue<string>()}</span>,
+    },
+    {
+      accessorKey: "type",
+      header: t("customerDetail.columns.type"),
+      cell: ({ getValue }) => <TxTypeBadge type={getValue<string>()} />,
+    },
+    {
+      id: "asset",
+      header: t("customerDetail.columns.asset"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const tx = row.original;
+        if (tx.type === "Conversion" && tx.conversion) {
+          return <span className="text-sm text-muted-foreground">{tx.conversion.fromAssetCode} → {tx.conversion.toAssetCode}</span>;
+        }
+        return <span className="text-sm text-muted-foreground">{tx.assetTypeName ?? "—"}</span>;
+      },
+    },
+    {
+      accessorKey: "createdByFullName",
+      header: t("customerDetail.columns.by"),
+      enableSorting: false,
+      cell: ({ getValue }) => (
+        <span className="hidden md:block text-sm text-muted-foreground">{getValue<string>()}</span>
+      ),
+    },
+  ];
+}
 
 // ── DashboardPage ─────────────────────────────────────────────
 export function DashboardPage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
   const [portfolioLoading, setPortfolioLoading] = useState(true);
 
+  const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
+  const [ozetOpen, setOzetOpen] = useState(false);
+
   useEffect(() => {
-    // Summary endpoint'i müşteri tipini desteklemiyor olabilir ama biz son işlemleri frontend'de filtreleyebiliriz.
-    // Ancak portföyü backend'den filtreleyerek çekmek daha doğru.
+    assetTypeApi.getAll().then(list => setAssetTypes(list.filter(a => a.isActive))).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
     dashboardApi
       .getSummary()
       .then(setSummary)
-      .catch(() => toast.error("Dashboard verileri yüklenemedi"))
+      .catch(() => toast.error(t("dashboard.loadError")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -269,13 +279,23 @@ export function DashboardPage() {
   const filteredRecentTransactions = summary?.recentTransactions ?? [];
 
   const today = new Date();
-  const groups = groupPortfolioAssets(portfolio);
+  const groups = groupPortfolioAssets(portfolio, t);
+  const recentColumns = buildRecentColumns(t);
+  const locale = i18n.language === "tr" ? "tr-TR" : "en-GB";
+
+  const portfolioBalances = portfolio.map((p): Balance => ({
+    assetTypeId: p.assetTypeId,
+    assetTypeCode: p.assetTypeCode,
+    assetTypeName: p.assetTypeName,
+    unitType: p.unitType,
+    amount: p.netAmount,
+  }));
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Mağaza Portföyü"
-        description="Genel bakış, varlık durumu ve son işlemler"
+        title={t("dashboard.title")}
+        description={t("dashboard.description")}
       />
 
       {/* ── Genel Bakış ── */}
@@ -285,56 +305,56 @@ export function DashboardPage() {
             <LayoutDashboard className="h-4 w-4" style={{ color: "var(--color-gold)" }} />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight text-foreground mb-0.5">Genel Bakış</h2>
-            <p className="text-sm text-muted-foreground">Mağazanızın anlık özet istatistikleri</p>
+            <h2 className="text-lg font-bold tracking-tight text-foreground mb-0.5">{t("dashboard.overview")}</h2>
+            <p className="text-sm text-muted-foreground">{t("dashboard.overviewSubtitle")}</p>
           </div>
         </div>
 
         {/* Özet Kartlar */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
-          title="Toplam Müşteri"
-          value={summary?.totalCustomers ?? 0}
-          icon={Users}
-          accentColor="var(--color-gold)"
-          loading={loading}
-        />
-        <SummaryCard
-          title="Aktif Kullanıcı"
-          value={summary?.totalActiveUsers ?? 0}
-          icon={UserCheck}
-          accentColor="#4ade80"
-          loading={loading}
-        />
-        <SummaryCard
-          title="Bugünkü İşlem"
-          value={summary?.todayTransactionCount ?? 0}
-          icon={Activity}
-          accentColor="#60a5fa"
-          loading={loading}
-        />
-        <SummaryCard
-          title="Tarih"
-          value={today.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
-          icon={CalendarDays}
-          accentColor="#c084fc"
-          loading={false}
-        />
-      </div>
+          <SummaryCard
+            title={t("dashboard.totalCustomers")}
+            value={summary?.totalCustomers ?? 0}
+            icon={Users}
+            accentColor="var(--color-gold)"
+            loading={loading}
+          />
+          <SummaryCard
+            title={t("dashboard.activeUsers")}
+            value={summary?.totalActiveUsers ?? 0}
+            icon={UserCheck}
+            accentColor="#4ade80"
+            loading={loading}
+          />
+          <SummaryCard
+            title={t("dashboard.todayTransactions")}
+            value={summary?.todayTransactionCount ?? 0}
+            icon={Activity}
+            accentColor="#60a5fa"
+            loading={loading}
+          />
+          <SummaryCard
+            title={t("dashboard.date")}
+            value={today.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })}
+            icon={CalendarDays}
+            accentColor="#c084fc"
+            loading={false}
+          />
+        </div>
       </div>
 
       {/* ── Varlık Durumu — Gruplu kompakt tablo ── */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-b from-[--color-gold-glow] to-transparent opacity-30 dark:opacity-15 -z-10 rounded-3xl blur-2xl" />
-        
+
         <div className="flex items-center justify-between gap-3 mb-3 px-1">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[--color-gold-glow] border border-[--color-gold]/20">
               <TrendingUp className="h-4 w-4" style={{ color: "var(--color-gold)" }} />
             </div>
             <div>
-              <h2 className="text-lg font-bold tracking-tight text-foreground mb-0.5">Varlık Durumu</h2>
-              <p className="text-sm text-muted-foreground">Mağaza bakiye özeti</p>
+              <h2 className="text-lg font-bold tracking-tight text-foreground mb-0.5">{t("dashboard.assetStatus")}</h2>
+              <p className="text-sm text-muted-foreground">{t("dashboard.assetStatusSubtitle")}</p>
             </div>
           </div>
           <Button
@@ -343,7 +363,7 @@ export function DashboardPage() {
             className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             onClick={() => navigate("/reports/portfolio")}
           >
-            Detaylı Rapor
+            {t("dashboard.detailedReport")}
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -357,7 +377,7 @@ export function DashboardPage() {
             </div>
           ) : groups.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-sm text-muted-foreground">Henüz bakiye kaydı bulunmuyor</p>
+              <p className="text-sm text-muted-foreground">{t("dashboard.noBalance")}</p>
             </div>
           ) : (
             <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
@@ -366,10 +386,36 @@ export function DashboardPage() {
               ))}
             </div>
           )}
+          
+          {portfolio.length > 0 && !portfolioLoading && (
+            <div className="mt-2 p-5 border-t border-black/[0.03] dark:border-white/[0.03] flex justify-center">
+              <button
+                onClick={() => setOzetOpen(true)}
+                className="group flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300"
+                style={{
+                  color: "var(--color-gold)",
+                  background: "rgba(212,164,55,0.06)",
+                  border: "1px solid rgba(212,164,55,0.3)",
+                  boxShadow: "0 0 0 1px rgba(212,164,55,0.15), 0 2px 8px rgba(212,164,55,0.12), inset 0 1px 0 rgba(245,209,110,0.15)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(212,164,55,0.12)";
+                  e.currentTarget.style.borderColor = "rgba(212,164,55,0.6)";
+                  e.currentTarget.style.boxShadow = "0 0 0 1px rgba(212,164,55,0.4), 0 4px 16px rgba(212,164,55,0.3), 0 0 28px rgba(212,164,55,0.15), inset 0 1px 0 rgba(245,209,110,0.25)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(212,164,55,0.06)";
+                  e.currentTarget.style.borderColor = "rgba(212,164,55,0.3)";
+                  e.currentTarget.style.boxShadow = "0 0 0 1px rgba(212,164,55,0.15), 0 2px 8px rgba(212,164,55,0.12), inset 0 1px 0 rgba(245,209,110,0.15)";
+                }}
+              >
+                <span style={{ fontSize: "1rem", lineHeight: 1 }}>₺</span>
+                {t("dashboard.calculateGeneralBalance") || "Mağaza Bakiye Hesapla"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-
 
       {/* Son İşlemler */}
       <div className="mt-2 relative">
@@ -378,8 +424,8 @@ export function DashboardPage() {
             <Activity className="h-4 w-4" style={{ color: "var(--color-gold)" }} />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight text-foreground mb-0.5">Son İşlemler</h2>
-            <p className="text-sm text-muted-foreground">Sistemdeki en güncel hareketler</p>
+            <h2 className="text-lg font-bold tracking-tight text-foreground mb-0.5">{t("dashboard.recentTransactions")}</h2>
+            <p className="text-sm text-muted-foreground">{t("dashboard.recentTransactionsSubtitle")}</p>
           </div>
         </div>
         <div className="bg-card/50 backdrop-blur-md rounded-2xl border border-black/5 dark:border-white/5 shadow-xl shadow-black/5 overflow-hidden">
@@ -387,12 +433,19 @@ export function DashboardPage() {
             columns={recentColumns}
             data={filteredRecentTransactions}
             isLoading={loading}
-            searchPlaceholder="İşlemlerde ara..."
-            emptyMessage="Henüz işlem yapılmamış"
-            onRowClick={(t) => navigate(`/customers/${t.customerId}`)}
+            searchPlaceholder={t("dashboard.searchTransactions")}
+            emptyMessage={t("dashboard.noTransactions")}
+            onRowClick={(tx) => navigate(`/customers/${tx.customerId}`)}
           />
         </div>
       </div>
+
+      <OzetBakiyeModal
+        open={ozetOpen}
+        onOpenChange={setOzetOpen}
+        balances={portfolioBalances}
+        assetTypes={assetTypes}
+      />
     </div>
   );
 }

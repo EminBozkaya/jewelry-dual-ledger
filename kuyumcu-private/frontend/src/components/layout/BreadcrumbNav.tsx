@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { breadcrumbLabelRegistry } from "@/lib/breadcrumb";
 import {
   Breadcrumb,
@@ -10,26 +11,26 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-const routeLabels: Record<string, string> = {
-  "": "Mağaza Portföyü",
-  customers: "Müşteriler",
-  reports: "Raporlar",
-  portfolio: "Mağaza Bakiye",
-  daily: "Müşteri İşlemleri",
-  statement: "Müşteri Ekstre",
-  admin: "Yönetim",
-  users: "Kullanıcılar",
-  "asset-types": "Varlık Tipleri",
+const segmentToTranslationKey: Record<string, string> = {
+  customers: "breadcrumb.customers",
+  reports: "breadcrumb.reports",
+  portfolio: "breadcrumb.storeBalance",
+  daily: "breadcrumb.customerTransactions",
+  statement: "breadcrumb.customerStatement",
+  admin: "breadcrumb.management",
+  users: "breadcrumb.users",
+  "asset-types": "breadcrumb.assetTypes",
 };
 
 export function BreadcrumbNav() {
   const location = useLocation();
+  const { t } = useTranslation();
   const segments = location.pathname.split("/").filter(Boolean);
   const [, setTick] = useState(0);
 
   useEffect(() => {
     // Registry değişince (örn. sayfa yüklenince) breadcrumb'ı yeniden çiz
-    return breadcrumbLabelRegistry.subscribe(() => setTick(t => t + 1));
+    return breadcrumbLabelRegistry.subscribe(() => setTick(tick => tick + 1));
   }, []);
 
   if (segments.length === 0) {
@@ -37,7 +38,7 @@ export function BreadcrumbNav() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage>Mağaza Portföyü</BreadcrumbPage>
+            <BreadcrumbPage>{t("breadcrumb.storePortfolio")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -50,9 +51,12 @@ export function BreadcrumbNav() {
         {segments.map((seg, idx) => {
           const isLast = idx === segments.length - 1;
           const href = "/" + segments.slice(0, idx + 1).join("/");
-          
-          // Önce routeLabels, sonra registry, en son seg isminin kendisi
-          const label = routeLabels[seg] ?? breadcrumbLabelRegistry.get(seg) ?? seg;
+
+          // Önce translation key, sonra registry, en son seg isminin kendisi
+          const translationKey = segmentToTranslationKey[seg];
+          const label = translationKey
+            ? t(translationKey)
+            : breadcrumbLabelRegistry.get(seg) ?? seg;
 
           return (
             <span key={href} className="flex items-center gap-1.5">

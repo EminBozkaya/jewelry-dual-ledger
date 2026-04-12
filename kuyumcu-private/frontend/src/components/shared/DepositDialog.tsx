@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import type { AssetType, Customer, DepositRequest } from "@/types";
 import { transactionApi } from "@/api/transactions";
@@ -46,42 +47,43 @@ function ConfirmStep({
   onConfirm: () => void;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   const asset = assetTypes.find((a) => a.id === assetTypeId);
   return (
     <div className="space-y-4 py-2">
-      <p className="text-sm text-muted-foreground">İşlemi onaylıyor musunuz?</p>
+      <p className="text-sm text-muted-foreground">{t("deposit.confirmQuestion")}</p>
       <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">İşlem:</span>
-          <span className="font-medium">Yatırma</span>
+          <span className="text-muted-foreground">{t("deposit.transactionType")}:</span>
+          <span className="font-medium">{t("deposit.transactionTypeValue")}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Müşteri:</span>
+          <span className="text-muted-foreground">{t("deposit.customer")}:</span>
           <span className="font-medium">{customer.fullName}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Varlık:</span>
+          <span className="text-muted-foreground">{t("deposit.asset")}:</span>
           <span className="font-medium">{asset ? `${asset.name} (${asset.code})` : "—"}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Miktar:</span>
+          <span className="text-muted-foreground">{t("deposit.amount")}:</span>
           <span className="font-semibold text-green-700">
             +{asset ? formatAmount(parseFloat(amount.replace(",", ".")), asset.unitType) : amount}
           </span>
         </div>
         {description && (
           <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground shrink-0">Açıklama:</span>
+            <span className="text-muted-foreground shrink-0">{t("deposit.description")}:</span>
             <span className="text-right">{description}</span>
           </div>
         )}
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onBack} disabled={loading} className="min-h-11">
-          Geri
+          {t("deposit.back")}
         </Button>
         <Button onClick={onConfirm} disabled={loading} className="min-h-11 bg-green-600 hover:bg-green-700">
-          {loading ? "Kaydediliyor..." : "✓ Onayla"}
+          {loading ? t("deposit.saving") : t("deposit.confirm")}
         </Button>
       </DialogFooter>
     </div>
@@ -95,6 +97,7 @@ export function DepositDialog({
   assetTypes,
   onSuccess,
 }: DepositDialogProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<"form" | "confirm">("form");
   const [assetTypeId, setAssetTypeId] = useState("");
   const [amount, setAmount] = useState("");
@@ -124,9 +127,9 @@ export function DepositDialog({
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!assetTypeId) errs.assetTypeId = "Varlık birimi seçilmeli";
+    if (!assetTypeId) errs.assetTypeId = t("deposit.validation.selectAsset");
     const num = parseFloat(amount.replace(",", "."));
-    if (!amount || isNaN(num) || num <= 0) errs.amount = "Geçerli bir miktar girin (> 0)";
+    if (!amount || isNaN(num) || num <= 0) errs.amount = t("deposit.validation.validAmount");
     return errs;
   };
 
@@ -154,13 +157,13 @@ export function DepositDialog({
       const assetLabel = selectedAsset
         ? `${formatAmount(num, selectedAsset.unitType)} ${selectedAsset.code}`
         : amount;
-      toast.success(`${assetLabel} yatırma işlemi başarılı`);
+      toast.success(`${assetLabel} ${t("deposit.successMsg")}`);
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? "Yatırma işlemi başarısız");
+      toast.error(msg ?? t("deposit.errorMsg"));
       setStep("form");
     } finally {
       setLoading(false);
@@ -171,13 +174,13 @@ export function DepositDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Yatırma İşlemi — {customer.fullName}</DialogTitle>
+          <DialogTitle>{t("deposit.title")} — {customer.fullName}</DialogTitle>
         </DialogHeader>
 
         {step === "form" ? (
           <div className="space-y-4 py-2">
             <AssetTypeSelect
-              label="Varlık Birimi *"
+              label={`${t("deposit.assetUnit")} *`}
               value={assetTypeId}
               onChange={(id) => {
                 setAssetTypeId(id);
@@ -189,7 +192,7 @@ export function DepositDialog({
             />
 
             <div className="space-y-1.5">
-              <Label>Miktar *</Label>
+              <Label>{t("deposit.amount")} *</Label>
               <Input
                 value={amount}
                 onChange={(e) => {
@@ -205,12 +208,12 @@ export function DepositDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Açıklama</Label>
+              <Label>{t("deposit.description")}</Label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
-                placeholder="İsteğe bağlı..."
+                placeholder={t("common.optional")}
               />
             </div>
 
@@ -220,13 +223,13 @@ export function DepositDialog({
                 className="min-h-11"
                 onClick={() => onOpenChange(false)}
               >
-                İptal
+                {t("deposit.cancel")}
               </Button>
               <Button
                 className="min-h-11 bg-green-600 hover:bg-green-700"
                 onClick={handleSubmit}
               >
-                Yatır
+                {t("deposit.submit")}
               </Button>
             </DialogFooter>
           </div>

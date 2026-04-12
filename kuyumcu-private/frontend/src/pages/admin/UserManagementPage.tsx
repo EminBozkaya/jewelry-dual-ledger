@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Plus, Pencil, KeyRound, PowerOff, Power } from "lucide-react";
 
@@ -40,31 +41,31 @@ import {
 // ── Zod şemaları ─────────────────────────────────────────────
 const createSchema = z
   .object({
-    fullName: z.string().min(2, "Ad soyad en az 2 karakter"),
-    username: z.string().min(3, "Kullanıcı adı en az 3 karakter"),
-    password: z.string().min(6, "Şifre en az 6 karakter"),
+    fullName: z.string().min(2, "fullName_min"),
+    username: z.string().min(3, "username_min"),
+    password: z.string().min(6, "password_min"),
     confirmPassword: z.string(),
     role: z.enum(["Admin", "Staff"]),
   })
   .refine((d) => d.password === d.confirmPassword, {
-    message: "Şifreler eşleşmiyor",
+    message: "password_mismatch",
     path: ["confirmPassword"],
   });
 
 const editSchema = z.object({
-  fullName: z.string().min(2, "Ad soyad en az 2 karakter"),
-  username: z.string().min(3, "Kullanıcı adı en az 3 karakter"),
+  fullName: z.string().min(2, "fullName_min"),
+  username: z.string().min(3, "username_min"),
   role: z.enum(["Admin", "Staff"]),
   isActive: z.boolean(),
 });
 
 const passwordSchema = z
   .object({
-    newPassword: z.string().min(6, "Şifre en az 6 karakter"),
+    newPassword: z.string().min(6, "password_min"),
     confirmPassword: z.string(),
   })
   .refine((d) => d.newPassword === d.confirmPassword, {
-    message: "Şifreler eşleşmiyor",
+    message: "password_mismatch",
     path: ["confirmPassword"],
   });
 
@@ -74,23 +75,36 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 
 // ── Rol badge ────────────────────────────────────────────────
 function RoleBadge({ role }: { role: string }) {
+  const { t } = useTranslation();
   return role === "Admin"
-    ? <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Admin</Badge>
-    : <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Personel</Badge>;
+    ? <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">{t("users.roles.admin")}</Badge>
+    : <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{t("users.roles.staff")}</Badge>;
 }
 
 // ── Durum badge ──────────────────────────────────────────────
 function StatusBadge({ isActive }: { isActive: boolean }) {
+  const { t } = useTranslation();
   return isActive
-    ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Aktif</Badge>
-    : <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100">Pasif</Badge>;
+    ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{t("users.status.active")}</Badge>
+    : <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100">{t("users.status.inactive")}</Badge>;
 }
 
 // ── UserManagementPage ────────────────────────────────────────
 export function UserManagementPage() {
   const { user: currentUser } = useAuth();
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const validationMsg = (msg: string | undefined) => {
+    const map: Record<string, string> = {
+      "fullName_min": t("users.validation.fullNameMin"),
+      "username_min": t("users.validation.usernameMin"),
+      "password_min": t("users.validation.passwordMin"),
+      "password_mismatch": t("users.validation.passwordMismatch"),
+    };
+    return msg ? (map[msg] ?? msg) : "";
+  };
 
   // Dialog state
   const [createOpen, setCreateOpen] = useState(false);
@@ -105,7 +119,7 @@ export function UserManagementPage() {
     userApi
       .getAll()
       .then(setUsers)
-      .catch(() => toast.error("Kullanıcılar yüklenemedi"))
+      .catch(() => toast.error(t("users.loadError")))
       .finally(() => setLoading(false));
   };
 
@@ -121,12 +135,12 @@ export function UserManagementPage() {
     setSubmitting(true);
     try {
       await userApi.create({ fullName: data.fullName, username: data.username, password: data.password, role: data.role });
-      toast.success("Kullanıcı oluşturuldu");
+      toast.success(t("users.createSuccess"));
       setCreateOpen(false);
       createForm.reset();
       loadUsers();
     } catch {
-      toast.error("Kullanıcı oluşturulamadı");
+      toast.error(t("users.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -146,11 +160,11 @@ export function UserManagementPage() {
     try {
       const payload: UserUpdateRequest = { fullName: data.fullName, username: data.username, role: data.role, isActive: data.isActive };
       await userApi.update(editUser.id, payload);
-      toast.success("Kullanıcı güncellendi");
+      toast.success(t("users.updateSuccess"));
       setEditUser(null);
       loadUsers();
     } catch {
-      toast.error("Güncelleme başarısız");
+      toast.error(t("users.updateError"));
     } finally {
       setSubmitting(false);
     }
@@ -164,11 +178,11 @@ export function UserManagementPage() {
     setSubmitting(true);
     try {
       await userApi.changePassword(passwordUser.id, data.newPassword);
-      toast.success("Şifre değiştirildi");
+      toast.success(t("users.passwordSuccess"));
       setPasswordUser(null);
       passwordForm.reset();
     } catch {
-      toast.error("Şifre değiştirilemedi");
+      toast.error(t("users.passwordError"));
     } finally {
       setSubmitting(false);
     }
@@ -180,11 +194,11 @@ export function UserManagementPage() {
     setSubmitting(true);
     try {
       await userApi.toggleActive(toggleUser.id);
-      toast.success(toggleUser.isActive ? "Kullanıcı pasife alındı" : "Kullanıcı aktif edildi");
+      toast.success(toggleUser.isActive ? t("users.deactivateSuccess") : t("users.activateSuccess"));
       setToggleUser(null);
       loadUsers();
     } catch {
-      toast.error("İşlem başarısız");
+      toast.error(t("users.toggleError"));
     } finally {
       setSubmitting(false);
     }
@@ -192,21 +206,21 @@ export function UserManagementPage() {
 
   // ── Tablo sütunları ────────────────────────────────────────
   const columns: ColumnDef<User>[] = [
-    { accessorKey: "fullName", header: "Ad Soyad", cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span> },
-    { accessorKey: "username", header: "Kullanıcı Adı", cell: ({ getValue }) => <span className="font-mono text-sm">{getValue<string>()}</span> },
+    { accessorKey: "fullName", header: t("users.columns.name"), cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span> },
+    { accessorKey: "username", header: t("users.columns.username"), cell: ({ getValue }) => <span className="font-mono text-sm">{getValue<string>()}</span> },
     {
       accessorKey: "role",
-      header: "Rol",
+      header: t("users.columns.role"),
       cell: ({ getValue }) => <RoleBadge role={getValue<string>()} />,
     },
     {
       accessorKey: "isActive",
-      header: "Durum",
+      header: t("users.columns.status"),
       cell: ({ getValue }) => <StatusBadge isActive={getValue<boolean>()} />,
     },
     {
       id: "actions",
-      header: "İşlemler",
+      header: t("users.columns.actions"),
       enableSorting: false,
       cell: ({ row }) => {
         const u = row.original;
@@ -219,7 +233,7 @@ export function UserManagementPage() {
                   <Pencil className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Düzenle</TooltipContent>
+              <TooltipContent>{t("users.actions.edit")}</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -228,7 +242,7 @@ export function UserManagementPage() {
                   <KeyRound className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Şifre Değiştir</TooltipContent>
+              <TooltipContent>{t("users.actions.changePassword")}</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -243,7 +257,7 @@ export function UserManagementPage() {
                   {u.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{isSelf ? "Kendi hesabınızı pasif yapamazsınız" : u.isActive ? "Pasife Al" : "Aktif Et"}</TooltipContent>
+              <TooltipContent>{isSelf ? t("users.actions.selfToggleWarning") : u.isActive ? t("users.actions.deactivate") : t("users.actions.activate")}</TooltipContent>
             </Tooltip>
           </div>
         );
@@ -254,12 +268,12 @@ export function UserManagementPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Kullanıcı Yönetimi"
-        description="Sistem kullanıcıları — Sadece Admin erişebilir"
+        title={t("users.title")}
+        description={t("users.description")}
         actions={
           <Button className="gap-2" onClick={() => { setCreateOpen(true); createForm.reset(); }}>
             <Plus className="h-4 w-4" />
-            Yeni Kullanıcı
+            {t("users.newUser")}
           </Button>
         }
       />
@@ -268,39 +282,39 @@ export function UserManagementPage() {
         columns={columns}
         data={users}
         isLoading={loading}
-        searchPlaceholder="Kullanıcı ara..."
-        emptyMessage="Henüz kullanıcı eklenmemiş"
+        searchPlaceholder={t("users.searchPlaceholder")}
+        emptyMessage={t("users.noUsers")}
       />
 
       {/* ── Yeni kullanıcı dialogu ── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Yeni Kullanıcı</DialogTitle>
+            <DialogTitle>{t("users.createForm.title")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
             <div className="space-y-1">
-              <Label>Ad Soyad</Label>
-              <Input {...createForm.register("fullName")} placeholder="Ahmet Yılmaz" />
-              {createForm.formState.errors.fullName && <p className="text-sm text-red-500">{createForm.formState.errors.fullName.message}</p>}
+              <Label>{t("users.createForm.fullName")}</Label>
+              <Input {...createForm.register("fullName")} placeholder={t("users.createForm.namePlaceholder")} />
+              {createForm.formState.errors.fullName && <p className="text-sm text-red-500">{validationMsg(createForm.formState.errors.fullName.message)}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Kullanıcı Adı</Label>
-              <Input {...createForm.register("username")} placeholder="ahmet.yilmaz" />
-              {createForm.formState.errors.username && <p className="text-sm text-red-500">{createForm.formState.errors.username.message}</p>}
+              <Label>{t("users.createForm.username")}</Label>
+              <Input {...createForm.register("username")} placeholder={t("users.createForm.usernamePlaceholder")} />
+              {createForm.formState.errors.username && <p className="text-sm text-red-500">{validationMsg(createForm.formState.errors.username.message)}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Şifre</Label>
-              <Input type="password" {...createForm.register("password")} placeholder="En az 6 karakter" />
-              {createForm.formState.errors.password && <p className="text-sm text-red-500">{createForm.formState.errors.password.message}</p>}
+              <Label>{t("users.createForm.password")}</Label>
+              <Input type="password" {...createForm.register("password")} placeholder={t("users.createForm.passwordPlaceholder")} />
+              {createForm.formState.errors.password && <p className="text-sm text-red-500">{validationMsg(createForm.formState.errors.password.message)}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Şifre Tekrar</Label>
-              <Input type="password" {...createForm.register("confirmPassword")} placeholder="Şifreyi tekrar girin" />
-              {createForm.formState.errors.confirmPassword && <p className="text-sm text-red-500">{createForm.formState.errors.confirmPassword.message}</p>}
+              <Label>{t("users.createForm.confirmPassword")}</Label>
+              <Input type="password" {...createForm.register("confirmPassword")} placeholder={t("users.createForm.confirmPlaceholder")} />
+              {createForm.formState.errors.confirmPassword && <p className="text-sm text-red-500">{validationMsg(createForm.formState.errors.confirmPassword.message)}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Rol</Label>
+              <Label>{t("users.createForm.role")}</Label>
               <Select
                 defaultValue="Staff"
                 onValueChange={(v) => createForm.setValue("role", v as "Admin" | "Staff")}
@@ -309,15 +323,15 @@ export function UserManagementPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Staff">Personel</SelectItem>
+                  <SelectItem value="Admin">{t("users.roles.admin")}</SelectItem>
+                  <SelectItem value="Staff">{t("users.roles.staff")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>İptal</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{t("users.createForm.cancel")}</Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? "Kaydediliyor..." : "Oluştur"}
+                {submitting ? t("users.createForm.saving") : t("users.createForm.create")}
               </Button>
             </DialogFooter>
           </form>
@@ -328,21 +342,21 @@ export function UserManagementPage() {
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Kullanıcı Düzenle</DialogTitle>
+            <DialogTitle>{t("users.editForm.title")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={editForm.handleSubmit(handleEdit)} className="space-y-4">
             <div className="space-y-1">
-              <Label>Ad Soyad</Label>
+              <Label>{t("users.editForm.fullName")}</Label>
               <Input {...editForm.register("fullName")} />
-              {editForm.formState.errors.fullName && <p className="text-sm text-red-500">{editForm.formState.errors.fullName.message}</p>}
+              {editForm.formState.errors.fullName && <p className="text-sm text-red-500">{validationMsg(editForm.formState.errors.fullName.message)}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Kullanıcı Adı</Label>
+              <Label>{t("users.editForm.username")}</Label>
               <Input {...editForm.register("username")} />
-              {editForm.formState.errors.username && <p className="text-sm text-red-500">{editForm.formState.errors.username.message}</p>}
+              {editForm.formState.errors.username && <p className="text-sm text-red-500">{validationMsg(editForm.formState.errors.username.message)}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Rol</Label>
+              <Label>{t("users.editForm.role")}</Label>
               <Select
                 value={editForm.watch("role")}
                 onValueChange={(v) => editForm.setValue("role", v as "Admin" | "Staff")}
@@ -351,15 +365,15 @@ export function UserManagementPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Staff">Personel</SelectItem>
+                  <SelectItem value="Admin">{t("users.roles.admin")}</SelectItem>
+                  <SelectItem value="Staff">{t("users.roles.staff")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditUser(null)}>İptal</Button>
+              <Button type="button" variant="outline" onClick={() => setEditUser(null)}>{t("users.editForm.cancel")}</Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? "Kaydediliyor..." : "Güncelle"}
+                {submitting ? t("users.editForm.saving") : t("users.editForm.save")}
               </Button>
             </DialogFooter>
           </form>
@@ -370,23 +384,23 @@ export function UserManagementPage() {
       <Dialog open={!!passwordUser} onOpenChange={(open) => !open && setPasswordUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Şifre Değiştir — {passwordUser?.fullName}</DialogTitle>
+            <DialogTitle>{t("users.passwordForm.title")} — {passwordUser?.fullName}</DialogTitle>
           </DialogHeader>
           <form onSubmit={passwordForm.handleSubmit(handlePassword)} className="space-y-4">
             <div className="space-y-1">
-              <Label>Yeni Şifre</Label>
-              <Input type="password" {...passwordForm.register("newPassword")} placeholder="En az 6 karakter" />
-              {passwordForm.formState.errors.newPassword && <p className="text-sm text-red-500">{passwordForm.formState.errors.newPassword.message}</p>}
+              <Label>{t("users.passwordForm.newPassword")}</Label>
+              <Input type="password" {...passwordForm.register("newPassword")} placeholder={t("users.passwordForm.placeholder")} />
+              {passwordForm.formState.errors.newPassword && <p className="text-sm text-red-500">{validationMsg(passwordForm.formState.errors.newPassword.message)}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Yeni Şifre Tekrar</Label>
-              <Input type="password" {...passwordForm.register("confirmPassword")} placeholder="Şifreyi tekrar girin" />
-              {passwordForm.formState.errors.confirmPassword && <p className="text-sm text-red-500">{passwordForm.formState.errors.confirmPassword.message}</p>}
+              <Label>{t("users.passwordForm.confirmPassword")}</Label>
+              <Input type="password" {...passwordForm.register("confirmPassword")} placeholder={t("users.passwordForm.confirmPlaceholder")} />
+              {passwordForm.formState.errors.confirmPassword && <p className="text-sm text-red-500">{validationMsg(passwordForm.formState.errors.confirmPassword.message)}</p>}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setPasswordUser(null)}>İptal</Button>
+              <Button type="button" variant="outline" onClick={() => setPasswordUser(null)}>{t("users.passwordForm.cancel")}</Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? "Kaydediliyor..." : "Şifreyi Değiştir"}
+                {submitting ? t("users.passwordForm.saving") : t("users.passwordForm.save")}
               </Button>
             </DialogFooter>
           </form>
@@ -397,13 +411,13 @@ export function UserManagementPage() {
       <ConfirmDialog
         open={!!toggleUser}
         onOpenChange={(open) => !open && setToggleUser(null)}
-        title={toggleUser?.isActive ? "Kullanıcıyı Pasife Al" : "Kullanıcıyı Aktif Et"}
+        title={toggleUser?.isActive ? t("users.toggleConfirm.deactivateTitle") : t("users.toggleConfirm.activateTitle")}
         description={
           toggleUser?.isActive
-            ? `"${toggleUser?.fullName}" pasif yapılacak. Bu kullanıcı sisteme giriş yapamaz.`
-            : `"${toggleUser?.fullName}" aktif edilecek.`
+            ? `"${toggleUser?.fullName}" ${t("users.toggleConfirm.deactivateDesc")}`
+            : `"${toggleUser?.fullName}" ${t("users.toggleConfirm.activateDesc")}`
         }
-        confirmLabel={toggleUser?.isActive ? "Pasife Al" : "Aktif Et"}
+        confirmLabel={toggleUser?.isActive ? t("users.toggleConfirm.deactivateBtn") : t("users.toggleConfirm.activateBtn")}
         destructive={!!toggleUser?.isActive}
         onConfirm={handleToggle}
       />

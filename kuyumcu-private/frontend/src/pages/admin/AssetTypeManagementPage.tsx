@@ -3,6 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Plus, Pencil, PowerOff, Power, Trash2, GripVertical } from "lucide-react";
 
 import {
@@ -67,12 +68,12 @@ import {
 const createSchema = z.object({
   code: z
     .string()
-    .min(2, "Kod en az 2 karakter")
-    .max(10, "Kod en fazla 10 karakter")
-    .regex(/^[A-Za-z0-9]+$/, "Sadece harf ve rakam kullanılabilir"),
-  name: z.string().min(2, "Ad en az 2 karakter").max(50, "Ad en fazla 50 karakter"),
+    .min(2, "code_min")
+    .max(10, "code_max")
+    .regex(/^[A-Za-z0-9]+$/, "code_alphanumeric"),
+  name: z.string().min(2, "name_min").max(50, "name_max"),
   unitType: z.enum(["Currency", "Piece", "Gram"], {
-    error: "Birim tipi seçiniz",
+    error: "select_unit_type",
   }),
   karat: z.coerce.number().int().min(1).max(24).optional().or(z.literal("")),
   gramWeight: z.coerce.number().positive().optional().or(z.literal("")),
@@ -81,12 +82,12 @@ const createSchema = z.object({
 const editSchema = z.object({
   code: z
     .string()
-    .min(2, "Kod en az 2 karakter")
-    .max(10, "Kod en fazla 10 karakter")
-    .regex(/^[A-Za-z0-9]+$/, "Sadece harf ve rakam kullanılabilir"),
-  name: z.string().min(2, "Ad en az 2 karakter").max(50, "Ad en fazla 50 karakter"),
+    .min(2, "code_min")
+    .max(10, "code_max")
+    .regex(/^[A-Za-z0-9]+$/, "code_alphanumeric"),
+  name: z.string().min(2, "name_min").max(50, "name_max"),
   unitType: z.enum(["Currency", "Piece", "Gram"], {
-    error: "Birim tipi seçiniz",
+    error: "select_unit_type",
   }),
   karat: z.coerce.number().int().min(1).max(24).optional().or(z.literal("")),
   gramWeight: z.coerce.number().positive().optional().or(z.literal("")),
@@ -96,17 +97,17 @@ type CreateForm = z.infer<typeof createSchema>;
 type EditForm = z.infer<typeof editSchema>;
 
 // ── Helper'lar ───────────────────────────────────────────────
-const unitTypeLabels: Record<string, string> = {
-  Currency: "Para Birimi",
-  Piece: "Adet",
-  Gram: "Gram",
-};
-
 function UnitTypeBadge({ unitType }: { unitType: string }) {
+  const { t } = useTranslation();
   const colors: Record<string, string> = {
     Currency: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400",
     Piece: "bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
     Gram: "bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400",
+  };
+  const unitTypeLabels: Record<string, string> = {
+    Currency: t("assetTypes.units.Currency"),
+    Piece: t("assetTypes.units.Piece"),
+    Gram: t("assetTypes.units.Gram"),
   };
   return (
     <Badge className={colors[unitType] ?? "bg-gray-100 text-gray-800"}>
@@ -116,10 +117,11 @@ function UnitTypeBadge({ unitType }: { unitType: string }) {
 }
 
 function StatusBadge({ isActive }: { isActive: boolean }) {
+  const { t } = useTranslation();
   return isActive ? (
-    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400">Aktif</Badge>
+    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400">{t("assetTypes.status.active")}</Badge>
   ) : (
-    <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100 dark:bg-gray-800/50 dark:text-gray-400">Pasif</Badge>
+    <Badge className="bg-gray-100 text-gray-600 hover:bg-gray-100 dark:bg-gray-800/50 dark:text-gray-400">{t("assetTypes.status.inactive")}</Badge>
   );
 }
 
@@ -160,6 +162,7 @@ function SortableRow({ id, disabled, children }: SortableRowProps) {
 
 // ── AssetTypeManagementPage ──────────────────────────────────
 export function AssetTypeManagementPage() {
+  const { t } = useTranslation();
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -177,12 +180,24 @@ export function AssetTypeManagementPage() {
   // Drag sırasında search/filter'ı geçici kapatmak için ref
   const isDraggingRef = useRef(false);
 
+  const validationMsg = (msg: string | undefined) => {
+    const map: Record<string, string> = {
+      "code_min": t("assetTypes.validation.codeMin"),
+      "code_max": t("assetTypes.validation.codeMax"),
+      "code_alphanumeric": t("assetTypes.validation.codeAlphanumeric"),
+      "name_min": t("assetTypes.validation.nameMin"),
+      "name_max": t("assetTypes.validation.nameMax"),
+      "select_unit_type": t("assetTypes.validation.selectUnitType"),
+    };
+    return msg ? (map[msg] ?? msg) : "";
+  };
+
   const loadData = () => {
     setLoading(true);
     assetTypeApi
       .getAllIncludingInactive()
       .then(setAssetTypes)
-      .catch(() => toast.error("Varlık tipleri yüklenemedi"))
+      .catch(() => toast.error(t("assetTypes.loadError")))
       .finally(() => setLoading(false));
   };
 
@@ -222,9 +237,9 @@ export function AssetTypeManagementPage() {
 
     try {
       await assetTypeApi.reorder(withNewOrder.map((a) => ({ id: a.id, sortOrder: a.sortOrder })));
-      toast.success("Sıralama kaydedildi");
+      toast.success(t("assetTypes.reorderSuccess"));
     } catch {
-      toast.error("Sıralama kaydedilemedi");
+      toast.error(t("assetTypes.reorderError"));
       loadData(); // geri al
     } finally {
       setReordering(false);
@@ -250,13 +265,13 @@ export function AssetTypeManagementPage() {
         gramWeight: data.gramWeight !== "" && data.gramWeight != null ? Number(data.gramWeight) : null,
       };
       await assetTypeApi.create(payload);
-      toast.success("Varlık tipi oluşturuldu");
+      toast.success(t("assetTypes.createSuccess"));
       setCreateOpen(false);
       createForm.reset();
       loadData();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(msg ?? "Varlık tipi oluşturulamadı");
+      toast.error(msg ?? t("assetTypes.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -290,12 +305,12 @@ export function AssetTypeManagementPage() {
         sortOrder: editItem.sortOrder,
       };
       await assetTypeApi.update(editItem.id, payload);
-      toast.success("Varlık tipi güncellendi");
+      toast.success(t("assetTypes.updateSuccess"));
       setEditItem(null);
       loadData();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(msg ?? "Güncelleme başarısız");
+      toast.error(msg ?? t("assetTypes.updateError"));
     } finally {
       setSubmitting(false);
     }
@@ -308,12 +323,12 @@ export function AssetTypeManagementPage() {
     try {
       await assetTypeApi.toggleActive(toggleItem.id);
       toast.success(
-        toggleItem.isActive ? "Varlık tipi pasife alındı" : "Varlık tipi aktif edildi"
+        toggleItem.isActive ? t("assetTypes.deactivateSuccess") : t("assetTypes.activateSuccess")
       );
       setToggleItem(null);
       loadData();
     } catch {
-      toast.error("İşlem başarısız");
+      toast.error(t("assetTypes.toggleError"));
     } finally {
       setSubmitting(false);
     }
@@ -330,7 +345,7 @@ export function AssetTypeManagementPage() {
       loadData();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      toast.error(msg ?? "Silme işlemi başarısız");
+      toast.error(msg ?? t("assetTypes.deleteError"));
     } finally {
       setSubmitting(false);
     }
@@ -358,66 +373,66 @@ export function AssetTypeManagementPage() {
     <>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <Label>Kod *</Label>
-          <Input {...form.register("code")} placeholder="Örn: CEYREK" className="uppercase" />
+          <Label>{t("assetTypes.form.code")} *</Label>
+          <Input {...form.register("code")} placeholder={t("assetTypes.form.codePlaceholder")} className="uppercase" />
           {form.formState.errors.code && (
-            <p className="text-sm text-red-500">{String(form.formState.errors.code.message ?? "")}</p>
+            <p className="text-sm text-red-500">{validationMsg(String(form.formState.errors.code.message ?? ""))}</p>
           )}
         </div>
         <div className="space-y-1">
-          <Label>Ad *</Label>
-          <Input {...form.register("name")} placeholder="Örn: Çeyrek Altın" />
+          <Label>{t("assetTypes.form.name")} *</Label>
+          <Input {...form.register("name")} placeholder={t("assetTypes.form.namePlaceholder")} />
           {form.formState.errors.name && (
-            <p className="text-sm text-red-500">{String(form.formState.errors.name.message ?? "")}</p>
+            <p className="text-sm text-red-500">{validationMsg(String(form.formState.errors.name.message ?? ""))}</p>
           )}
         </div>
       </div>
 
       <div className="space-y-1">
-        <Label>Birim Tipi *</Label>
+        <Label>{t("assetTypes.form.unitType")} *</Label>
         <Controller
           control={form.control}
           name="unitType"
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Birim tipi seçin..." />
+                <SelectValue placeholder={t("assetTypes.form.unitTypePlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Currency">Para Birimi (TL, USD, EUR...)</SelectItem>
-                <SelectItem value="Piece">Adet (Çeyrek, Yarım, Tam...)</SelectItem>
-                <SelectItem value="Gram">Gram (22 Ayar, 24 Ayar, Gümüş...)</SelectItem>
+                <SelectItem value="Currency">{t("assetTypes.unitOptions.Currency")}</SelectItem>
+                <SelectItem value="Piece">{t("assetTypes.unitOptions.Piece")}</SelectItem>
+                <SelectItem value="Gram">{t("assetTypes.unitOptions.Gram")}</SelectItem>
               </SelectContent>
             </Select>
           )}
         />
         {form.formState.errors.unitType && (
-          <p className="text-sm text-red-500">{String(form.formState.errors.unitType.message ?? "")}</p>
+          <p className="text-sm text-red-500">{validationMsg(String(form.formState.errors.unitType.message ?? ""))}</p>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <Label>Ayar (Karat)</Label>
+          <Label>{t("assetTypes.form.karat")}</Label>
           <Input
             type="number"
             {...form.register("karat")}
-            placeholder="Örn: 22"
+            placeholder={t("assetTypes.form.karatPlaceholder")}
             min={1}
             max={24}
           />
-          <p className="text-xs text-muted-foreground">Altın türleri için (opsiyonel)</p>
+          <p className="text-xs text-muted-foreground">{t("assetTypes.form.karatHint")}</p>
         </div>
         <div className="space-y-1">
-          <Label>Gram Ağırlık</Label>
+          <Label>{t("assetTypes.form.gramWeight")}</Label>
           <Input
             type="number"
             step="0.01"
             {...form.register("gramWeight")}
-            placeholder="Örn: 1.75"
+            placeholder={t("assetTypes.form.gramWeightPlaceholder")}
             min={0}
           />
-          <p className="text-xs text-muted-foreground">Referans ağırlık (opsiyonel)</p>
+          <p className="text-xs text-muted-foreground">{t("assetTypes.form.gramWeightHint")}</p>
         </div>
       </div>
     </>
@@ -426,8 +441,8 @@ export function AssetTypeManagementPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Varlık Tipleri"
-        description="Sistemde tanımlı varlık birimlerini yönetin — Para birimleri, altın türleri ve diğer varlıklar"
+        title={t("assetTypes.title")}
+        description={t("assetTypes.description")}
         actions={
           <div className="flex items-center gap-3">
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "active" | "inactive")}>
@@ -435,14 +450,14 @@ export function AssetTypeManagementPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tümü ({assetTypes.length})</SelectItem>
-                <SelectItem value="active">Aktif ({assetTypes.filter(a => a.isActive).length})</SelectItem>
-                <SelectItem value="inactive">Pasif ({assetTypes.filter(a => !a.isActive).length})</SelectItem>
+                <SelectItem value="all">{t("assetTypes.filter.all")} ({assetTypes.length})</SelectItem>
+                <SelectItem value="active">{t("assetTypes.filter.active")} ({assetTypes.filter(a => a.isActive).length})</SelectItem>
+                <SelectItem value="inactive">{t("assetTypes.filter.inactive")} ({assetTypes.filter(a => !a.isActive).length})</SelectItem>
               </SelectContent>
             </Select>
             <Button className="gap-2" onClick={() => { setCreateOpen(true); createForm.reset(); }}>
               <Plus className="h-4 w-4" />
-              Yeni Varlık Tipi
+              {t("assetTypes.newAssetType")}
             </Button>
           </div>
         }
@@ -454,21 +469,21 @@ export function AssetTypeManagementPage() {
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Varlık tipi ara..."
+            placeholder={t("assetTypes.searchPlaceholder")}
             className="w-full sm:max-w-xs"
           />
           {!dragEnabled && !loading && (
             <p className="text-sm text-muted-foreground">
               {searchQuery
-                ? "Arama sırasında sıralama devre dışı"
-                : "Sıralama için «Tümü» görünümünü seçin"}
+                ? t("assetTypes.searchDisabled")
+                : t("assetTypes.selectAllFirst")}
             </p>
           )}
           {dragEnabled && !loading && (
             <p className="text-sm text-muted-foreground flex items-center gap-1.5">
               <GripVertical className="h-4 w-4" />
-              Satırları tutup sürükleyerek sıralamayı değiştirin
-              {reordering && " · kaydediliyor..."}
+              {t("assetTypes.dragHint")}
+              {reordering && ` · ${t("assetTypes.reordering")}`}
             </p>
           )}
         </div>
@@ -485,13 +500,13 @@ export function AssetTypeManagementPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10"></TableHead>
-                  <TableHead>Kod</TableHead>
-                  <TableHead>Ad</TableHead>
-                  <TableHead>Birim Tipi</TableHead>
-                  <TableHead>Ayar</TableHead>
-                  <TableHead>Gram Ağırlık</TableHead>
-                  <TableHead>Durum</TableHead>
-                  <TableHead>İşlemler</TableHead>
+                  <TableHead>{t("assetTypes.columns.code")}</TableHead>
+                  <TableHead>{t("assetTypes.columns.name")}</TableHead>
+                  <TableHead>{t("assetTypes.columns.unitType")}</TableHead>
+                  <TableHead>{t("assetTypes.columns.karat")}</TableHead>
+                  <TableHead>{t("assetTypes.columns.gramWeight")}</TableHead>
+                  <TableHead>{t("assetTypes.columns.status")}</TableHead>
+                  <TableHead>{t("assetTypes.columns.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -508,7 +523,7 @@ export function AssetTypeManagementPage() {
                 ) : displayedItems.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                      Henüz varlık tipi eklenmemiş
+                      {t("assetTypes.noAssetTypes")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -548,7 +563,7 @@ export function AssetTypeManagementPage() {
                             </TableCell>
                             <TableCell className="py-3">
                               {item.karat ? (
-                                <span className="font-medium">{item.karat} Ayar</span>
+                                <span className="font-medium">{item.karat} {t("assetTypes.columns.karat")}</span>
                               ) : (
                                 <span className="text-muted-foreground">—</span>
                               )}
@@ -571,7 +586,7 @@ export function AssetTypeManagementPage() {
                                       <Pencil className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Düzenle</TooltipContent>
+                                  <TooltipContent>{t("assetTypes.actions.edit")}</TooltipContent>
                                 </Tooltip>
 
                                 <Tooltip>
@@ -585,7 +600,7 @@ export function AssetTypeManagementPage() {
                                       {item.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>{item.isActive ? "Pasife Al" : "Aktif Et"}</TooltipContent>
+                                  <TooltipContent>{item.isActive ? t("assetTypes.actions.deactivate") : t("assetTypes.actions.activate")}</TooltipContent>
                                 </Tooltip>
 
                                 <Tooltip>
@@ -599,7 +614,7 @@ export function AssetTypeManagementPage() {
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Sil</TooltipContent>
+                                  <TooltipContent>{t("assetTypes.actions.delete")}</TooltipContent>
                                 </Tooltip>
                               </div>
                             </TableCell>
@@ -616,7 +631,7 @@ export function AssetTypeManagementPage() {
 
         {!loading && displayedItems.length > 0 && (
           <p className="text-sm text-muted-foreground">
-            {displayedItems.length} kayıt gösteriliyor
+            {displayedItems.length} {t("assetTypes.recordsShown")}
           </p>
         )}
       </div>
@@ -625,16 +640,16 @@ export function AssetTypeManagementPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle>Yeni Varlık Tipi</DialogTitle>
+            <DialogTitle>{t("assetTypes.createTitle")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={createForm.handleSubmit(handleCreate as unknown as Parameters<typeof createForm.handleSubmit>[0])} className="space-y-4">
             {renderFormFields(createForm)}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
-                İptal
+                {t("assetTypes.form.cancel")}
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? "Kaydediliyor..." : "Oluştur"}
+                {submitting ? t("assetTypes.form.saving") : t("assetTypes.form.create")}
               </Button>
             </DialogFooter>
           </form>
@@ -646,7 +661,7 @@ export function AssetTypeManagementPage() {
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>
-              Varlık Tipi Düzenle — {editItem?.code}
+              {t("assetTypes.editTitle")} — {editItem?.code}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={editForm.handleSubmit(handleEdit as unknown as Parameters<typeof editForm.handleSubmit>[0])} className="space-y-4">
@@ -654,16 +669,16 @@ export function AssetTypeManagementPage() {
 
             <div className="rounded-lg border border-amber-200/50 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-950/20 p-3">
               <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                <strong>Not:</strong> Ayar ve gram ağırlık değişiklikleri sadece yeni işlemler için geçerli olur. Daha önce kaydedilmiş işlemlerin tutarları bundan etkilenmez.
+                <strong>Not:</strong> {t("assetTypes.form.editNote")}
               </p>
             </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditItem(null)}>
-                İptal
+                {t("assetTypes.form.cancel")}
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? "Kaydediliyor..." : "Güncelle"}
+                {submitting ? t("assetTypes.form.saving") : t("assetTypes.form.save")}
               </Button>
             </DialogFooter>
           </form>
@@ -674,13 +689,13 @@ export function AssetTypeManagementPage() {
       <ConfirmDialog
         open={!!toggleItem}
         onOpenChange={(open) => !open && setToggleItem(null)}
-        title={toggleItem?.isActive ? "Varlık Tipini Pasife Al" : "Varlık Tipini Aktif Et"}
+        title={toggleItem?.isActive ? t("assetTypes.toggleConfirm.deactivateTitle") : t("assetTypes.toggleConfirm.activateTitle")}
         description={
           toggleItem?.isActive
             ? `"${toggleItem?.name}" (${toggleItem?.code}) pasif yapılacak. Yeni işlemlerde seçilemez hale gelir ancak mevcut kayıtlar korunur.`
             : `"${toggleItem?.name}" (${toggleItem?.code}) tekrar aktif edilecek ve yeni işlemlerde seçilebilir olacak.`
         }
-        confirmLabel={toggleItem?.isActive ? "Pasife Al" : "Aktif Et"}
+        confirmLabel={toggleItem?.isActive ? t("assetTypes.toggleConfirm.deactivateBtn") : t("assetTypes.toggleConfirm.activateBtn")}
         destructive={!!toggleItem?.isActive}
         onConfirm={handleToggle}
       />
@@ -689,11 +704,11 @@ export function AssetTypeManagementPage() {
       <ConfirmDialog
         open={!!deleteItem}
         onOpenChange={(open) => !open && setDeleteItem(null)}
-        title="Varlık Tipini Sil"
+        title={t("assetTypes.deleteConfirm.title")}
         description={
           `"${deleteItem?.name}" (${deleteItem?.code}) silinecek. Eğer herhangi bir müşteri bakiyesinde veya işlemde kullanılıyorsa, kalıcı olarak silinmez — bunun yerine otomatik olarak pasife alınır.`
         }
-        confirmLabel="Sil"
+        confirmLabel={t("assetTypes.deleteConfirm.button")}
         destructive
         onConfirm={handleDelete}
       />

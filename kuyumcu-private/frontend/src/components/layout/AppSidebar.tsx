@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   Users,
@@ -32,29 +33,21 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
-const mainNav = [
-  {
-    title: "Mağaza Portföyü",
-    icon: LayoutDashboard,
-    href: "/",
-  },
-  {
-    title: "Müşteriler",
-    icon: Users,
-    href: "/customers",
-  },
+const mainNavDef = [
+  { key: "nav.storePortfolio", icon: LayoutDashboard, href: "/" },
+  { key: "nav.customers", icon: Users, href: "/customers" },
 ];
 
-const reportsNav = [
-  { title: "Mağaza Bakiye", href: "/reports/portfolio", icon: PieChart },
-  { title: "Müşteri İşlemleri", href: "/reports/daily", icon: Calendar },
-  { title: "Müşteri Ekstre", href: "/reports/statement", icon: FileText },
+const reportsNavDef = [
+  { key: "nav.storeBalance", href: "/reports/portfolio", icon: PieChart },
+  { key: "nav.customerTransactions", href: "/reports/daily", icon: Calendar },
+  { key: "nav.customerStatement", href: "/reports/statement", icon: FileText },
 ];
 
-const adminNav = [
-  { title: "Kullanıcılar", href: "/admin/users", icon: UserCog },
-  { title: "Varlık Tipleri", href: "/admin/asset-types", icon: Gem },
-  { title: "Müşteri Tipleri", href: "/admin/customer-types", icon: Tag },
+const adminNavDef = [
+  { key: "nav.users", href: "/admin/users", icon: UserCog },
+  { key: "nav.assetTypes", href: "/admin/asset-types", icon: Gem },
+  { key: "nav.customerTypes", href: "/admin/customer-types", icon: Tag },
 ];
 
 /* ── Inline diamond logo for sidebar ── */
@@ -78,6 +71,7 @@ function SidebarLogo() {
 export function AppSidebar() {
   const location = useLocation();
   const { isAdmin, user, logout } = useAuth();
+  const { t } = useTranslation();
 
   const isActive = (href: string) => {
     if (href === "/") return location.pathname === "/";
@@ -96,7 +90,7 @@ export function AppSidebar() {
             <p className="font-semibold text-sm leading-tight" style={{ color: "var(--color-gold)" }}>
               Kuyumcu Özel
             </p>
-            <p className="text-xs text-muted-foreground">Cari Sistemi</p>
+            <p className="text-xs text-muted-foreground">{t("nav.systemTitle")}</p>
           </div>
         </div>
       </SidebarHeader>
@@ -106,16 +100,16 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1 mt-2">
-              {mainNav.map((item) => (
+              {mainNavDef.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton 
-                    asChild 
+                  <SidebarMenuButton
+                    asChild
                     isActive={isActive(item.href)}
                     className="h-11 rounded-xl transition-all duration-300 border border-black/[0.04] dark:border-white/[0.03] bg-black/[0.02] dark:bg-white/[0.02] shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:bg-white/90 dark:hover:bg-white/5 hover:border-[#d4a437]/50 dark:hover:border-[#e8b84a]/50 hover:shadow-[0_4px_16px_-4px_var(--color-gold-glow-strong)] hover:-translate-y-0.5 data-[active=true]:bg-white dark:data-[active=true]:bg-white/10 data-[active=true]:border-[#d4a437] dark:data-[active=true]:border-[#e8b84a] data-[active=true]:shadow-[0_6px_20px_-4px_var(--color-gold-glow-strong)] data-[active=true]:-translate-y-0.5 font-medium cursor-pointer"
                   >
                     <NavLink to={item.href}>
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span>{t(item.key)}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -131,12 +125,12 @@ export function AppSidebar() {
               <Collapsible defaultOpen={location.pathname.startsWith("/reports")} className="group/collapsible">
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton 
+                    <SidebarMenuButton
                       isActive={location.pathname.startsWith("/reports")}
                       className="h-11 rounded-xl transition-all duration-300 border border-black/[0.04] dark:border-white/[0.03] bg-black/[0.02] dark:bg-white/[0.02] shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:bg-white/90 dark:hover:bg-white/5 hover:border-[#d4a437]/50 dark:hover:border-[#e8b84a]/50 hover:shadow-[0_4px_16px_-4px_var(--color-gold-glow-strong)] hover:-translate-y-0.5 data-[active=true]:bg-white dark:data-[active=true]:bg-white/10 data-[active=true]:border-[#d4a437] dark:data-[active=true]:border-[#e8b84a] data-[active=true]:shadow-[0_6px_20px_-4px_var(--color-gold-glow-strong)] data-[active=true]:-translate-y-0.5 font-medium cursor-pointer"
                     >
                       <BarChart3 />
-                      <span>Raporlar</span>
+                      <span>{t("nav.reports")}</span>
                       <ChevronRight
                         className={cn(
                           "ml-auto transition-transform",
@@ -147,16 +141,16 @@ export function AppSidebar() {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub className="mt-1.5 gap-1 border-l-black/10 dark:border-l-white/10">
-                      {reportsNav.map((item) => (
+                      {reportsNavDef.map((item) => (
                         <SidebarMenuSubItem key={item.href}>
-                          <SidebarMenuSubButton 
-                            asChild 
+                          <SidebarMenuSubButton
+                            asChild
                             isActive={isActive(item.href)}
                             className="h-9 mb-1 rounded-lg transition-all duration-300 border border-black/[0.03] dark:border-white/[0.02] bg-black/[0.015] dark:bg-white/[0.01] shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:bg-white/70 dark:hover:bg-white/5 hover:border-[#d4a437]/40 dark:hover:border-[#e8b84a]/40 hover:shadow-[0_4px_12px_-4px_var(--color-gold-glow-strong)] hover:translate-x-1 data-[active=true]:bg-white/90 dark:data-[active=true]:bg-white/10 data-[active=true]:border-[#d4a437]/80 dark:data-[active=true]:border-[#e8b84a]/80 data-[active=true]:shadow-[0_4px_14px_-4px_var(--color-gold-glow-strong)] data-[active=true]:translate-x-1 font-medium tracking-tight cursor-pointer"
                           >
                             <NavLink to={item.href}>
                               <item.icon />
-                              <span>{item.title}</span>
+                              <span>{t(item.key)}</span>
                             </NavLink>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
@@ -171,18 +165,18 @@ export function AppSidebar() {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="mt-2 mix-blend-luminosity">Yönetim</SidebarGroupLabel>
+            <SidebarGroupLabel className="mt-2 mix-blend-luminosity">{t("nav.management")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-1">
                 <Collapsible defaultOpen={location.pathname.startsWith("/admin")} className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton 
+                      <SidebarMenuButton
                         isActive={location.pathname.startsWith("/admin")}
                         className="h-11 rounded-xl transition-all duration-300 border border-black/[0.04] dark:border-white/[0.03] bg-black/[0.02] dark:bg-white/[0.02] shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:bg-white/90 dark:hover:bg-white/5 hover:border-[#d4a437]/50 dark:hover:border-[#e8b84a]/50 hover:shadow-[0_4px_16px_-4px_var(--color-gold-glow-strong)] hover:-translate-y-0.5 data-[active=true]:bg-white dark:data-[active=true]:bg-white/10 data-[active=true]:border-[#d4a437] dark:data-[active=true]:border-[#e8b84a] data-[active=true]:shadow-[0_6px_20px_-4px_var(--color-gold-glow-strong)] data-[active=true]:-translate-y-0.5 font-medium cursor-pointer"
                       >
                         <Settings />
-                        <span>Yönetim</span>
+                        <span>{t("nav.management")}</span>
                         <ChevronRight
                           className={cn(
                             "ml-auto transition-transform",
@@ -193,16 +187,16 @@ export function AppSidebar() {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub className="mt-1.5 gap-1 border-l-black/10 dark:border-l-white/10">
-                        {adminNav.map((item) => (
+                        {adminNavDef.map((item) => (
                           <SidebarMenuSubItem key={item.href}>
-                            <SidebarMenuSubButton 
-                              asChild 
+                            <SidebarMenuSubButton
+                              asChild
                               isActive={isActive(item.href)}
                               className="h-9 mb-1 rounded-lg transition-all duration-300 border border-black/[0.03] dark:border-white/[0.02] bg-black/[0.015] dark:bg-white/[0.01] shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:bg-white/70 dark:hover:bg-white/5 hover:border-[#d4a437]/40 dark:hover:border-[#e8b84a]/40 hover:shadow-[0_4px_12px_-4px_var(--color-gold-glow-strong)] hover:translate-x-1 data-[active=true]:bg-white/90 dark:data-[active=true]:bg-white/10 data-[active=true]:border-[#d4a437]/80 dark:data-[active=true]:border-[#e8b84a]/80 data-[active=true]:shadow-[0_4px_14px_-4px_var(--color-gold-glow-strong)] data-[active=true]:translate-x-1 font-medium tracking-tight cursor-pointer"
                             >
                               <NavLink to={item.href}>
                                 <item.icon />
-                                <span>{item.title}</span>
+                                <span>{t(item.key)}</span>
                               </NavLink>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
@@ -225,14 +219,14 @@ export function AppSidebar() {
               {user?.fullName?.charAt(0)?.toUpperCase() ?? "K"}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium truncate">{user?.fullName ?? "Kullanıcı"}</p>
-              <p className="text-[10px] text-muted-foreground">{isAdmin ? "Yönetici" : "Personel"}</p>
+              <p className="text-xs font-medium truncate">{user?.fullName}</p>
+              <p className="text-[10px] text-muted-foreground">{isAdmin ? t("nav.admin") : t("nav.staff")}</p>
             </div>
           </div>
           <button
             onClick={logout}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-white/10 shadow-sm transition-all hover:scale-[1.05] cursor-pointer"
-            title="Çıkış yap"
+            title={t("nav.logout")}
           >
             <LogOut className="h-5 w-5" />
           </button>

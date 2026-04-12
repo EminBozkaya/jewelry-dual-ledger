@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Pencil, Trash2, Upload, Banknote, ArrowUpFromLine, RefreshCw } from "lucide-react";
+import { Pencil, Trash2, Upload, Banknote, ArrowUpFromLine, RefreshCw, Printer } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,6 +17,7 @@ import { formatDate, formatDateShort, formatTransactionType, formatAmount } from
 import { useAuth } from "@/hooks/useAuth";
 import { isValidTC } from "@/lib/validations";
 import { breadcrumbLabelRegistry } from "@/lib/breadcrumb";
+import { printReceipt } from "@/lib/printUtils";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PhoneInput } from "@/components/shared/PhoneInput";
@@ -26,6 +27,7 @@ import { DataTable } from "@/components/shared/DataTable";
 import { DepositDialog } from "@/components/shared/DepositDialog";
 import { WithdrawalDialog } from "@/components/shared/WithdrawalDialog";
 import { ConversionDialog } from "@/components/shared/ConversionDialog";
+import { OzetBakiyeModal } from "@/components/shared/OzetBakiyeModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -169,302 +171,6 @@ function CancelDialog({
   );
 }
 
-// ── Genel Bakiye Hesaplama Modalı ─────────────────────────────
-function OzetBakiyeModal({
-  open,
-  onOpenChange,
-  balances,
-  assetTypes,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  balances: Balance[];
-  assetTypes: AssetType[];
-}) {
-  const [rates, setRates] = useState<Record<string, string>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<number | null>(null);
-  const [loadingTcmb, setLoadingTcmb] = useState(false);
-  const [rateType, setRateType] = useState<"Buying" | "Selling" | "Average">("Selling");
-  const [magzaRateType, setMagzaRateType] = useState<"Buying" | "Average" | "Selling">("Selling");
-
-  useEffect(() => {
-    if (!open) {
-      setRates({});
-      setErrors({});
-      setResult(null);
-      return;
-    }
-    // TRY kurunu otomatik 1 olarak doldur
-    const initial: Record<string, string> = {};
-    for (const b of balances) {
-      if (b.assetTypeCode === "TRY") initial[b.assetTypeId] = "1";
-    }
-    setRates(initial);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleFetchTcmb = async () => {
-    setLoadingTcmb(true);
-    try {
-      const { ratesApi } = await import("@/api/rates");
-      const data = await ratesApi.getAll(rateType);
-      const newRates = { ...rates };
-      let filled = 0;
-      let skipped: string[] = [];
-
-      for (const b of balances) {
-        const assetType = assetMap.get(b.assetTypeId);
-
-        if (b.unitType === "Currency") {
-          // Döviz: direkt TCMB kuru
-          const rate = data.currencies[b.assetTypeCode];
-          if (rate != null) {
-            newRates[b.assetTypeId] = rate.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
-            filled++;
-          } else {
-            skipped.push(b.assetTypeName);
-          }
-        } else if (assetType?.karat != null && data.goldGramTry24k != null) {
-          // Altın — karat bilgisi var
-          const purity = assetType.karat / 24;
-          if (b.unitType === "Gram") {
-            // Gram altın: 24k gram × saflık
-            const rate = data.goldGramTry24k * purity;
-            newRates[b.assetTypeId] = rate.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
-            filled++;
-          } else if (b.unitType === "Piece" && assetType.gramWeight != null) {
-            // Adet altın: 24k gram × saflık × gram ağırlığı
-            const rate = data.goldGramTry24k * purity * assetType.gramWeight;
-            newRates[b.assetTypeId] = rate.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
-            filled++;
-          } else {
-            // Adet altın ama gramWeight girilmemiş
-            skipped.push(b.assetTypeName);
-          }
-        } else if (
-          b.assetTypeCode === "XAG" ||
-          b.assetTypeName.toLowerCase().includes("gümüş") ||
-          b.assetTypeName.toLowerCase().includes("gumus")
-        ) {
-          // Gümüş: EVDS TP.GUMUS.S1 üzerinden gram fiyatı
-          if (data.silverGramTry != null) {
-            if (b.unitType === "Gram") {
-              newRates[b.assetTypeId] = data.silverGramTry.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
-              filled++;
-            } else if (b.unitType === "Piece" && assetType?.gramWeight != null) {
-              const rate = data.silverGramTry * assetType.gramWeight;
-              newRates[b.assetTypeId] = rate.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
-              filled++;
-            } else {
-              skipped.push(b.assetTypeName);
-            }
-          } else {
-            skipped.push(b.assetTypeName);
-          }
-        } else if (b.assetTypeCode !== "TRY") {
-          skipped.push(b.assetTypeName);
-        }
-      }
-
-      setRates(newRates);
-      setErrors({});
-      setResult(null);
-
-      if (skipped.length > 0) {
-        toast.info(`${filled} kur güncellendi. Manuel girilmesi gereken: ${skipped.join(", ")}`);
-      } else {
-        toast.success("Tüm kurlar Merkez Bankası verisiyle güncellendi.");
-      }
-    } catch {
-      toast.error("Kurlar alınamadı. Lütfen tekrar deneyin.");
-    } finally {
-      setLoadingTcmb(false);
-    }
-  };
-
-  const assetMap = new Map(assetTypes.map((a) => [a.id, a]));
-  const groups = [
-    { title: "Döviz", items: balances.filter((b) => b.unitType === "Currency") },
-    { title: "Altın", items: balances.filter((b) => b.unitType !== "Currency" && assetMap.get(b.assetTypeId)?.karat != null) },
-    { title: "Diğer", items: balances.filter((b) => b.unitType !== "Currency" && assetMap.get(b.assetTypeId)?.karat == null) },
-  ].filter((g) => g.items.length > 0);
-
-  const handleCalculate = () => {
-    const errs: Record<string, string> = {};
-    for (const b of balances) {
-      const raw = rates[b.assetTypeId] ?? "";
-      const num = parseFloat(raw.replace(",", "."));
-      if (!raw || isNaN(num) || num <= 0) {
-        errs[b.assetTypeId] = "Kur girilmeli";
-      }
-    }
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      setResult(null);
-      return;
-    }
-    setErrors({});
-    let total = 0;
-    for (const b of balances) {
-      const rate = parseFloat(rates[b.assetTypeId].replace(",", "."));
-      total += b.amount * rate;
-    }
-    setResult(Math.round(total * 100) / 100);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Genel Bakiye Hesapla</DialogTitle>
-        </DialogHeader>
-
-        {/* Tablo başlığı */}
-        <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 text-xs font-semibold text-muted-foreground border-b pb-2">
-          <span>Varlık</span>
-          <span className="text-right w-24">Miktar</span>
-          <span className="text-right w-24">TL Kuru</span>
-        </div>
-
-        {/* Gruplar */}
-        <div className="space-y-4">
-          {groups.map((g) => (
-            <div key={g.title}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-1.5">
-                {g.title}
-              </p>
-              <div className="space-y-1">
-                {g.items.map((b) => {
-                  const isTRY = b.assetTypeCode === "TRY";
-                  const isPos = b.amount >= 0;
-                  return (
-                    <div key={b.assetTypeId} className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-start">
-                      <span className="text-sm pt-1.5 truncate">{b.assetTypeName}</span>
-                      <span className={`text-sm font-semibold tabular-nums text-right pt-1.5 w-24 ${isPos ? "text-green-600" : "text-red-600"}`}>
-                        {isPos ? "+" : ""}{formatAmount(b.amount, b.unitType)}
-                      </span>
-                      <div className="w-24">
-                        <Input
-                          value={rates[b.assetTypeId] ?? ""}
-                          onChange={(e) => {
-                            setRates((r) => ({ ...r, [b.assetTypeId]: e.target.value }));
-                            setErrors((er) => ({ ...er, [b.assetTypeId]: "" }));
-                          }}
-                          disabled={isTRY}
-                          placeholder="0,00"
-                          inputMode="decimal"
-                          className={`h-8 text-right text-sm ${errors[b.assetTypeId] ? "border-destructive" : ""}`}
-                        />
-                        {errors[b.assetTypeId] && (
-                          <p className="text-[10px] text-destructive mt-0.5 text-right">{errors[b.assetTypeId]}</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Sonuç */}
-        {result !== null && (
-          <div className={`flex items-center justify-between rounded-lg px-4 py-3 mt-1 ${result >= 0 ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
-            <span className="text-sm font-medium text-muted-foreground">Toplam TL Karşılığı</span>
-            <span
-              className={`text-lg font-bold tabular-nums ${result >= 0 ? "text-green-600" : "text-red-600"}`}
-              style={{ textShadow: result >= 0 ? "0 0 10px rgba(22,163,74,0.3)" : "0 0 10px rgba(220,38,38,0.3)" }}
-            >
-              {result >= 0 ? "+" : ""}
-              {result.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
-            </span>
-          </div>
-        )}
-
-        {/* Footer — kur kaynakları + aksiyon butonları */}
-        <div className="flex flex-col gap-3 pt-3 border-t">
-
-          {/* Kur kaynağı kartları — yan yana */}
-          <div className="grid grid-cols-2 gap-2">
-
-            {/* Mağaza Kurları */}
-            <div className="rounded-lg border bg-muted/20 p-3 flex flex-col gap-2.5 opacity-50 select-none">
-              <p className="text-xs font-semibold text-center text-muted-foreground tracking-wide">
-                Mağaza Kurları
-              </p>
-              <div className="space-y-1.5">
-                {(["Buying", "Average", "Selling"] as const).map((type) => {
-                  const labels: Record<string, string> = { Buying: "Alış Kuru", Average: "Ortalama", Selling: "Satış Kuru" };
-                  const active = magzaRateType === type;
-                  return (
-                    <label key={type} onClick={() => setMagzaRateType(type)} className="flex items-center gap-2 cursor-not-allowed">
-                      <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? "border-primary" : "border-muted-foreground/40"}`}>
-                        {active && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                      </span>
-                      <span className={`text-xs ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}>
-                        {labels[type]}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              <Button size="sm" variant="outline" disabled className="w-full h-7 text-xs mt-0.5">
-                Çek
-              </Button>
-            </div>
-
-            {/* Merkez Bankası Kurları */}
-            <div className="rounded-lg border bg-muted/20 p-3 flex flex-col gap-2.5">
-              <p className="text-xs font-semibold text-center text-foreground tracking-wide">
-                Merkez Bankası
-              </p>
-              <div className="space-y-1.5">
-                {(["Buying", "Average", "Selling"] as const).map((type) => {
-                  const labels: Record<string, string> = { Buying: "Alış Kuru", Average: "Ortalama", Selling: "Satış Kuru" };
-                  const active = rateType === type;
-                  return (
-                    <label
-                      key={type}
-                      onClick={() => setRateType(type)}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${active ? "border-primary" : "border-muted-foreground/40"}`}>
-                        {active && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                      </span>
-                      <span className={`text-xs transition-colors ${active ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                        {labels[type]}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleFetchTcmb}
-                disabled={loadingTcmb}
-                className="w-full h-7 text-xs mt-0.5 hover:text-foreground"
-              >
-                {loadingTcmb ? "Yükleniyor..." : "Çek"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Kapat / Hesapla — ortalanmış */}
-          <div className="flex justify-center gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="min-h-10 px-8">
-              Kapat
-            </Button>
-            <Button onClick={handleCalculate} className="min-h-10 px-8">
-              Hesapla
-            </Button>
-          </div>
-
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 // ── İşlem Geçmişi Filtreleri ─────────────────────────────────
 interface TxFilters {
@@ -528,6 +234,13 @@ export function CustomerDetailPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [phoneWarningOpen, setPhoneWarningOpen] = useState(false);
+  const [pendingUpdateReq, setPendingUpdateReq] = useState<CustomerUpdateRequest | null>(null);
+
+  // Restore States
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [restoreOption, setRestoreOption] = useState<"keep" | "reset">("keep");
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
 
   // Filtreler
   const [filters, setFilters] = useState<TxFilters>({
@@ -674,6 +387,40 @@ export function CustomerDetailPage() {
       toast.success("Müşteri güncellendi");
       setEditOpen(false);
     } catch (err: any) {
+      const errorMsg = err.response?.data?.error;
+      if (errorMsg === "PHONE_EXISTS") {
+        const req: CustomerUpdateRequest = {
+          firstName: values.firstName,
+          lastName: values.lastName,
+          phone: values.phone || undefined,
+          type: values.type,
+          nationalId: values.nationalId || undefined,
+          email: values.email || undefined,
+          address: values.address || undefined,
+          notes: values.notes || undefined,
+        };
+        setPendingUpdateReq(req);
+        setPhoneWarningOpen(true);
+      } else {
+        toast.error(errorMsg || "Güncelleme başarısız");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePhoneWarningConfirm = async () => {
+    if (!id || !pendingUpdateReq) return;
+    try {
+      setSaving(true);
+      setPhoneWarningOpen(false);
+      const updated = await customerApi.update(id, { ...pendingUpdateReq, ignorePhoneWarning: true });
+      setCustomer(updated);
+      breadcrumbLabelRegistry.set(id, `${updated.firstName} ${updated.lastName}`);
+      toast.success("Müşteri güncellendi");
+      setEditOpen(false);
+      setPendingUpdateReq(null);
+    } catch (err: any) {
       const msg = err.response?.data?.error || "Güncelleme başarısız";
       toast.error(msg);
     } finally {
@@ -703,6 +450,24 @@ export function CustomerDetailPage() {
       await refreshData();
     } catch {
       toast.error("İptal işlemi başarısız");
+    }
+  };
+
+  const handleRestoreSelect = () => {
+    setRestoreOpen(false);
+    setRestoreConfirmOpen(true);
+  };
+
+  const handleRestoreConfirm = async () => {
+    if (!id) return;
+    try {
+      const resetBalances = restoreOption === "reset";
+      await customerApi.restore(id, resetBalances);
+      toast.success("Müşteri başarıyla aktif edildi");
+      setRestoreConfirmOpen(false);
+      loadAll();
+    } catch {
+      toast.error("Müşteri aktif edilemedi");
     }
   };
 
@@ -891,27 +656,44 @@ export function CustomerDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={customer.fullName}
+        title={
+          <div className="flex items-center gap-3">
+            {customer.fullName}
+            {customer.isDeleted && (
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20">
+                Silinmiş
+              </span>
+            )}
+          </div>
+        }
         description="Müşteri detayı"
         actions={
-          <>
-            <Button variant="outline" size="sm" onClick={openEdit} className="gap-2">
-              <Pencil className="h-4 w-4" />
-              Düzenle
+          customer.isDeleted ? (
+            <Button size="sm" onClick={() => setRestoreOpen(true)} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+              <RefreshCw className="h-4 w-4" />
+              Müşteriyi Aktif Et
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 text-destructive hover:text-destructive"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-              Sil
-            </Button>
-          </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={openEdit} className="gap-2">
+                <Pencil className="h-4 w-4" />
+                Düzenle
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-destructive hover:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Sil
+              </Button>
+            </>
+          )
         }
       />
 
+      <div className={customer.isDeleted ? "opacity-50 pointer-events-none grayscale transition-opacity" : ""}>
       {/* Bilgi Kartı — Tam genişlik, 3 sütun: Avatar | Bilgiler | Portföy */}
       <Card>
         <CardContent className="p-6">
@@ -1028,9 +810,20 @@ export function CustomerDetailPage() {
               return (
                 <div className="sm:flex-1 sm:pl-8 flex justify-center sm:justify-start items-start">
                   <div className="w-full max-w-xs">
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                      Portföy
-                    </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Portföy
+                      </p>
+                      {balances.length > 0 && (
+                        <button
+                          onClick={() => printReceipt(customer!, groups)}
+                          className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                          title="Portföyü Yazdır (Adisyon)"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                     {balances.length === 0 ? (
                       <p className="text-xs text-muted-foreground italic">Bakiye yok</p>
                     ) : (
@@ -1069,7 +862,7 @@ export function CustomerDetailPage() {
             })()}
           </div>
 
-          {/* Genel Bakiye Hesapla butonu — üstte border, ortalı */}
+          {/* Müşteri Bakiye Hesapla butonu — üstte border, ortalı */}
           {balances.length > 0 && (
             <div className="mt-5 pt-5 border-t border-border flex justify-center">
               <button
@@ -1093,7 +886,7 @@ export function CustomerDetailPage() {
                 }}
               >
                 <span style={{ fontSize: "1rem", lineHeight: 1 }}>₺</span>
-                Genel Bakiye Hesapla
+                Müşteri Bakiye Hesapla
               </button>
             </div>
           )}
@@ -1326,6 +1119,7 @@ export function CustomerDetailPage() {
           />
         )}
       </div>
+      </div>
 
       {/* Düzenleme Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -1383,7 +1177,7 @@ export function CustomerDetailPage() {
                 name="phone"
                 render={({ field }) => (
                   <PhoneInput
-                    value={field.value}
+                    value={field.value ?? undefined}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
                   />
@@ -1506,6 +1300,95 @@ export function CustomerDetailPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Telefon Numarası Mükerrer Uyarısı */}
+      <ConfirmDialog
+        open={phoneWarningOpen}
+        onOpenChange={(open) => {
+          setPhoneWarningOpen(open);
+          if (!open) setPendingUpdateReq(null);
+        }}
+        title="Telefon Numarası Mevcut"
+        description="Bu telefon numarası başka bir müşteride zaten kayıtlı. Yine de güncellemek istediğinize emin misiniz?"
+        confirmLabel="Evet, Güncelle"
+        cancelLabel="İptal"
+        onConfirm={handlePhoneWarningConfirm}
+      />
+
+      {/* Restore Dialogs */}
+      <Dialog open={restoreOpen} onOpenChange={setRestoreOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Müşteriyi Aktif Et</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Müşteriyi yeniden aktif ederken varlık durumunu nasıl ayarlamak istersiniz?
+            </p>
+            <div className="space-y-3">
+              <label
+                className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                  restoreOption === "keep" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="restoreOption"
+                  value="keep"
+                  checked={restoreOption === "keep"}
+                  onChange={() => setRestoreOption("keep")}
+                  className="mt-1"
+                />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Son varlık değerleri kalsın</p>
+                  <p className="text-xs text-muted-foreground">Müşterinin silindiği andaki portföy bakiyeleri aynen korunur.</p>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                  restoreOption === "reset" ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="restoreOption"
+                  value="reset"
+                  checked={restoreOption === "reset"}
+                  onChange={() => setRestoreOption("reset")}
+                  className="mt-1"
+                />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Sıfırlanarak aktif edilsin</p>
+                  <p className="text-xs text-muted-foreground">Müşterinin tüm varlık bakiyeleri sıfırlanır, eski hesapları kapatılır.</p>
+                </div>
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRestoreOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleRestoreSelect} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+              Devam Et
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={restoreConfirmOpen}
+        onOpenChange={setRestoreConfirmOpen}
+        title="İşlemi Onayla"
+        description={
+          restoreOption === "keep"
+            ? "Müşteri, hesabındaki mevcut bakiyeleriyle birlikte tekrar aktif edilecektir. Onaylıyor musunuz?"
+            : "Müşterinin tüm bakiyeleri sıfırlanacak ve müşteri bu şekilde aktif edilecektir. Bu işlem geri alınamaz. Onaylıyor musunuz?"
+        }
+        onConfirm={handleRestoreConfirm}
+        confirmLabel="Evet, Aktif Et"
+        cancelLabel="İptal"
+      />
     </div>
   );
 }

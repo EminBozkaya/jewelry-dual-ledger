@@ -105,7 +105,7 @@ public class TransactionService(AppDbContext db) : ITransactionService
     // ── Müşteri Hareket Geçmişi ───────────────────────────────────────────────
     public async Task<List<TransactionResponse>> GetByCustomerAsync(Guid customerId)
     {
-        var ids = await db.Transactions
+        var ids = await db.Transactions.IgnoreQueryFilters()
             .Where(t => t.CustomerId == customerId)
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => t.Id)
@@ -169,7 +169,7 @@ public class TransactionService(AppDbContext db) : ITransactionService
     // ── Yardımcı: Response Oluştur ────────────────────────────────────────────
     private async Task<TransactionResponse> BuildResponseAsync(Guid id)
     {
-        var t = await db.Transactions
+        var t = await db.Transactions.IgnoreQueryFilters()
             .Include(x => x.Customer)
             .Include(x => x.AssetType)
             .Include(x => x.CreatedByUser)

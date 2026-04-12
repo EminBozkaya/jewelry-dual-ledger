@@ -34,18 +34,20 @@ export interface Customer {
   type: CustomerType;
   notes?: string;
   hasPhoto: boolean;
+  isDeleted: boolean;
   createdAt: string;
 }
 
 export interface CustomerCreateRequest {
   firstName: string;
   lastName: string;
-  phone: string;
+  phone?: string;
   address?: string;
   email?: string;
   nationalId?: string;
   type: CustomerType;
   notes?: string;
+  ignorePhoneWarning?: boolean;
 }
 
 export interface CustomerUpdateRequest extends CustomerCreateRequest {}

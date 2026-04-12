@@ -14,5 +14,6 @@ public record CustomerResponse(
     CustomerType Type,
     string? Notes,
     bool HasPhoto,
+    bool IsDeleted,
     DateTime CreatedAt
 );

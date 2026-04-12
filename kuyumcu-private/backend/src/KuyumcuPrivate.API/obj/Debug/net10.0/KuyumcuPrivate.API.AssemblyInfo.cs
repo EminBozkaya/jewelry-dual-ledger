@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KuyumcuPrivate.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+590cfe45b7080710394387576a973f202fd2e6d5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+094da7500a56c3b8cf1d317199819e95baf738a0")]
 [assembly: System.Reflection.AssemblyProductAttribute("KuyumcuPrivate.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KuyumcuPrivate.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

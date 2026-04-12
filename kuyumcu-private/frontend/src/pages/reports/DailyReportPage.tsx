@@ -1,13 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, subDays, subMonths, startOfYear } from "date-fns";
-import { tr } from "date-fns/locale";
+import { tr, enUS } from "date-fns/locale";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Calendar, ArrowDown, ArrowUp, ArrowLeftRight } from "lucide-react";
 
 import { reportApi } from "@/api/reports";
-import type { DailyReport, Transaction, CustomerType } from "@/types";
+import { customerTypeApi } from "@/api/customer-types";
+import type { DailyReport, Transaction, CustomerType, CustomerTypeConfig } from "@/types";
 import { formatTransactionType } from "@/lib/formatters";
 
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -21,18 +23,20 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // ── İşlem tablosu sütunları ───────────────────────────────────
-function buildColumns(navigate: (path: string) => void): ColumnDef<Transaction>[] {
+type TFunction = (key: string) => string;
+
+function buildColumns(navigate: (path: string) => void, t: TFunction): ColumnDef<Transaction>[] {
   return [
     {
       accessorKey: "createdAt",
-      header: "Tarih",
+      header: t("dailyReport.columns.date"),
       cell: ({ getValue }) => (
         <span className="text-sm font-mono">{format(new Date(getValue<string>()), "dd.MM.yyyy HH:mm")}</span>
       ),
     },
     {
       accessorKey: "customerFullName",
-      header: "Müşteri",
+      header: t("dailyReport.columns.customer"),
       cell: ({ row }) => (
         <button
           className="font-medium hover:underline text-left"
@@ -44,7 +48,7 @@ function buildColumns(navigate: (path: string) => void): ColumnDef<Transaction>[
     },
     {
       accessorKey: "type",
-      header: "İşlem Türü",
+      header: t("dailyReport.columns.type"),
       cell: ({ getValue }) => {
         const type = getValue<string>();
         const map: Record<string, string> = {
@@ -61,48 +65,48 @@ function buildColumns(navigate: (path: string) => void): ColumnDef<Transaction>[
     },
     {
       id: "asset",
-      header: "Varlık",
+      header: t("dailyReport.columns.asset"),
       cell: ({ row }) => {
-        const t = row.original;
-        if (t.type === "Conversion" && t.conversion) {
-          return <span className="text-sm">{t.conversion.fromAssetCode} → {t.conversion.toAssetCode}</span>;
+        const tx = row.original;
+        if (tx.type === "Conversion" && tx.conversion) {
+          return <span className="text-sm">{tx.conversion.fromAssetCode} → {tx.conversion.toAssetCode}</span>;
         }
-        return <span className="text-sm">{t.assetTypeName ?? "—"}</span>;
+        return <span className="text-sm">{tx.assetTypeName ?? "—"}</span>;
       },
     },
     {
       id: "amount",
-      header: "Miktar",
+      header: t("dailyReport.columns.amount"),
       cell: ({ row }) => {
-        const t = row.original;
-        if (t.type === "Conversion" && t.conversion) {
+        const tx = row.original;
+        if (tx.type === "Conversion" && tx.conversion) {
           return (
             <span className="text-sm text-muted-foreground">
-              {t.conversion.fromAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })} → {t.conversion.toAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+              {tx.conversion.fromAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })} → {tx.conversion.toAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
             </span>
           );
         }
-        const cls = t.type === "Deposit" ? "text-[var(--color-alacak)]" : "text-[var(--color-borc)]";
-        return <span className={`font-medium text-sm ${cls}`}>{t.amount?.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 }) ?? "—"}</span>;
+        const cls = tx.type === "Deposit" ? "text-[var(--color-alacak)]" : "text-[var(--color-borc)]";
+        return <span className={`font-medium text-sm ${cls}`}>{tx.amount?.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 }) ?? "—"}</span>;
       },
     },
     {
       accessorKey: "description",
-      header: "Açıklama",
+      header: t("dailyReport.columns.description"),
       cell: ({ getValue }) => <span className="text-sm text-muted-foreground">{getValue<string>() || "—"}</span>,
     },
     {
       accessorKey: "createdByFullName",
-      header: "İşlemi Yapan",
+      header: t("dailyReport.columns.by"),
       cell: ({ getValue }) => <span className="text-sm text-muted-foreground">{getValue<string>()}</span>,
     },
     {
       id: "status",
-      header: "Durum",
+      header: t("dailyReport.columns.status"),
       cell: ({ row }) =>
         row.original.isCancelled
-          ? <Badge className="bg-red-100 text-red-800 hover:bg-red-100">İptal</Badge>
-          : <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Tamamlandı</Badge>,
+          ? <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{t("dailyReport.status.cancelled")}</Badge>
+          : <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{t("dailyReport.status.completed")}</Badge>,
     },
   ];
 }
@@ -110,6 +114,9 @@ function buildColumns(navigate: (path: string) => void): ColumnDef<Transaction>[
 // ── DailyReportPage ───────────────────────────────────────────
 export function DailyReportPage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === "tr" ? tr : enUS;
+
   const [fromDate, setFromDate] = useState<Date>(new Date());
   const [toDate, setToDate] = useState<Date>(new Date());
   const [activeShortcut, setActiveShortcut] = useState<"today" | "week" | "month" | "year" | null>("today");
@@ -117,80 +124,81 @@ export function DailyReportPage() {
   const [selectedCustomerTypes, setSelectedCustomerTypes] = useState<CustomerType[]>([]);
 
   const [report, setReport] = useState<DailyReport | null>(null);
+  const [customerTypes, setCustomerTypes] = useState<CustomerTypeConfig[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchReport = (from: Date, to: Date) => {
-    setLoading(true);
-    const fromStr = format(from, "yyyy-MM-dd");
-    const toStr = format(to, "yyyy-MM-dd");
-    reportApi
-      .getDaily(fromStr, toStr)
-      .then(setReport)
-      .catch(() => toast.error("İşlem raporları yüklenemedi"))
-      .finally(() => setLoading(false));
-  };
 
   useEffect(() => {
     // Eğer fromDate toDate'den büyükse toDate'i de fromDate'e eşitle (opsiyonel güvenlik)
     if (fromDate > toDate) {
       setToDate(fromDate);
     }
-    fetchReport(fromDate, toDate);
+
+    // Rapor ve tipi bilgilerini paralel çek
+    setLoading(true);
+    Promise.all([
+      reportApi.getDaily(format(fromDate, "yyyy-MM-dd"), format(toDate, "yyyy-MM-dd")),
+      customerTypeApi.getAll()
+    ]).then(([r, ct]) => {
+      setReport(r);
+      setCustomerTypes(ct);
+    }).catch(() => {
+      toast.error(t("dailyReport.loadError"));
+    }).finally(() => {
+      setLoading(false);
+    });
   }, [fromDate, toDate]);
 
   const txData = useMemo(() => {
     if (!report?.transactions) return [];
     let list = report.transactions;
-    
+
     // İşlem Tipi Filtresi
-    if (txTypeFilter !== "all") list = list.filter(t => t.type === txTypeFilter);
-    
+    if (txTypeFilter !== "all") list = list.filter(tx => tx.type === txTypeFilter);
+
     // Müşteri Tipi Filtresi
     if (selectedCustomerTypes.length > 0) {
-      list = list.filter(t => {
-        const typeValue = t.customerType === "Standard" ? 0 
-                       : t.customerType === "Jeweler" ? 1 
-                       : t.customerType === "Supplier" ? 2 
-                       : Number(t.customerType);
-        return selectedCustomerTypes.includes(typeValue as CustomerType);
+      list = list.filter(tx => {
+        // tx.customerType zaten number (CustomerType)
+        return selectedCustomerTypes.includes(Number(tx.customerType) as CustomerType);
       });
     }
-    
+
     return list;
   }, [report, txTypeFilter, selectedCustomerTypes]);
 
   const reportExportSummary = useMemo(() => {
     if (!report) return undefined;
     const sections: any[] = [];
-    
+
     if (report.deposits.length > 0) {
       sections.push({
-        title: "Yatırma İşlemleri",
+        title: t("dailyReport.export.depositSummary"),
         items: report.deposits.map(d => ({ label: d.assetTypeName, value: d.totalAmount.toLocaleString("tr-TR") }))
       });
     }
     if (report.withdrawals.length > 0) {
       sections.push({
-        title: "Çekme İşlemleri",
+        title: t("dailyReport.export.withdrawalSummary"),
         items: report.withdrawals.map(w => ({ label: w.assetTypeName, value: w.totalAmount.toLocaleString("tr-TR") }))
       });
     }
     if (report.conversions.length > 0) {
       sections.push({
-        title: "Dönüşüm İşlemleri",
-        items: report.conversions.map(c => ({ label: `${c.fromAssetCode} -> ${c.toAssetCode}`, value: `${c.count} işlem` }))
+        title: t("dailyReport.export.conversionSummary"),
+        items: report.conversions.map(c => ({ label: `${c.fromAssetCode} -> ${c.toAssetCode}`, value: `${c.count} ${t("dailyReport.transactions")}` }))
       });
     }
     return sections;
-  }, [report]);
+  }, [report, t]);
 
-  const columns = buildColumns(navigate);
+  const columns = buildColumns(navigate, t);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Müşteri İşlemleri"
-        description="Seçilen tarih aralığındaki işlemlerin özeti"
+        title={t("dailyReport.title")}
+        description={t("dailyReport.description")}
       />
 
       {/* Tarih seçici */}
@@ -199,7 +207,7 @@ export function DailyReportPage() {
           <PopoverTrigger asChild>
             <Button variant="outline" className="min-w-40 justify-start text-left font-normal gap-2">
               <Calendar className="h-4 w-4" />
-              {format(fromDate, "dd MMMM yyyy", { locale: tr })}
+              {format(fromDate, "dd MMMM yyyy", { locale: dateLocale })}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -213,7 +221,7 @@ export function DailyReportPage() {
                   setActiveShortcut(null);
                 }
               }}
-              locale={tr}
+              locale={dateLocale}
             />
           </PopoverContent>
         </Popover>
@@ -224,7 +232,7 @@ export function DailyReportPage() {
           <PopoverTrigger asChild>
             <Button variant="outline" className="min-w-40 justify-start text-left font-normal gap-2">
               <Calendar className="h-4 w-4" />
-              {format(toDate, "dd MMMM yyyy", { locale: tr })}
+              {format(toDate, "dd MMMM yyyy", { locale: dateLocale })}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -238,7 +246,7 @@ export function DailyReportPage() {
                   setActiveShortcut(null);
                 }
               }}
-              locale={tr}
+              locale={dateLocale}
             />
           </PopoverContent>
         </Popover>
@@ -265,22 +273,22 @@ export function DailyReportPage() {
 
             return (
               <>
-                {btn("today", "Bugün", () => {
+                {btn("today", t("dailyReport.today"), () => {
                   const today = new Date();
                   setFromDate(today);
                   setToDate(today);
                 })}
-                {btn("week", "Son Hafta", () => {
+                {btn("week", t("dailyReport.lastWeek"), () => {
                   const today = new Date();
                   setFromDate(subDays(today, 7));
                   setToDate(today);
                 })}
-                {btn("month", "Son 1 Ay", () => {
+                {btn("month", t("dailyReport.lastMonth"), () => {
                   const today = new Date();
                   setFromDate(subMonths(today, 1));
                   setToDate(today);
                 })}
-                {btn("year", "Bu Sene", () => {
+                {btn("year", t("dailyReport.thisYear"), () => {
                   const today = new Date();
                   setFromDate(startOfYear(today));
                   setToDate(today);
@@ -298,14 +306,14 @@ export function DailyReportPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm text-[var(--color-alacak)]">
               <ArrowDown className="h-4 w-4" />
-              Yatırma İşlemleri
+              {t("dailyReport.deposits")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? <Skeleton className="h-16 w-full" /> : (
               <>
                 <p className="text-2xl font-bold text-[var(--color-alacak)]">
-                  {report?.deposits.reduce((s, d) => s + d.count, 0) ?? 0} işlem
+                  {report?.deposits.reduce((s, d) => s + d.count, 0) ?? 0} {t("dailyReport.transactions")}
                 </p>
                 <ul className="mt-2 space-y-1">
                   {report?.deposits.map((d) => (
@@ -314,7 +322,7 @@ export function DailyReportPage() {
                       <span className="font-medium">{d.totalAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</span>
                     </li>
                   ))}
-                  {report?.deposits.length === 0 && <li className="text-sm text-muted-foreground">İşlem yok</li>}
+                  {report?.deposits.length === 0 && <li className="text-sm text-muted-foreground">{t("dailyReport.noTransactions")}</li>}
                 </ul>
               </>
             )}
@@ -326,14 +334,14 @@ export function DailyReportPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm text-[var(--color-borc)]">
               <ArrowUp className="h-4 w-4" />
-              Çekme İşlemleri
+              {t("dailyReport.withdrawals")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? <Skeleton className="h-16 w-full" /> : (
               <>
                 <p className="text-2xl font-bold text-[var(--color-borc)]">
-                  {report?.withdrawals.reduce((s, d) => s + d.count, 0) ?? 0} işlem
+                  {report?.withdrawals.reduce((s, d) => s + d.count, 0) ?? 0} {t("dailyReport.transactions")}
                 </p>
                 <ul className="mt-2 space-y-1">
                   {report?.withdrawals.map((d) => (
@@ -342,7 +350,7 @@ export function DailyReportPage() {
                       <span className="font-medium">{d.totalAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</span>
                     </li>
                   ))}
-                  {report?.withdrawals.length === 0 && <li className="text-sm text-muted-foreground">İşlem yok</li>}
+                  {report?.withdrawals.length === 0 && <li className="text-sm text-muted-foreground">{t("dailyReport.noTransactions")}</li>}
                 </ul>
               </>
             )}
@@ -354,23 +362,23 @@ export function DailyReportPage() {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm text-blue-600">
               <ArrowLeftRight className="h-4 w-4" />
-              Dönüşüm İşlemleri
+              {t("dailyReport.conversions")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? <Skeleton className="h-16 w-full" /> : (
               <>
                 <p className="text-2xl font-bold text-blue-600">
-                  {report?.conversions.reduce((s, d) => s + d.count, 0) ?? 0} işlem
+                  {report?.conversions.reduce((s, d) => s + d.count, 0) ?? 0} {t("dailyReport.transactions")}
                 </p>
                 <ul className="mt-2 space-y-1">
                   {report?.conversions.map((d, i) => (
                     <li key={i} className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{d.fromAssetCode} → {d.toAssetCode}</span>
-                      <span className="font-medium">{d.count} adet</span>
+                      <span className="font-medium">{d.count} {t("dailyReport.pieces")}</span>
                     </li>
                   ))}
-                  {report?.conversions.length === 0 && <li className="text-sm text-muted-foreground">İşlem yok</li>}
+                  {report?.conversions.length === 0 && <li className="text-sm text-muted-foreground">{t("dailyReport.noTransactions")}</li>}
                 </ul>
               </>
             )}
@@ -381,9 +389,9 @@ export function DailyReportPage() {
       {/* İşlem tablosu */}
       <div>
         {(() => {
-          const depositCount = report?.transactions.filter((t) => t.type === "Deposit").length ?? 0;
-          const withdrawalCount = report?.transactions.filter((t) => t.type === "Withdrawal").length ?? 0;
-          const conversionCount = report?.transactions.filter((t) => t.type === "Conversion").length ?? 0;
+          const depositCount = report?.transactions.filter((tx) => tx.type === "Deposit").length ?? 0;
+          const withdrawalCount = report?.transactions.filter((tx) => tx.type === "Withdrawal").length ?? 0;
+          const conversionCount = report?.transactions.filter((tx) => tx.type === "Conversion").length ?? 0;
           const totalCount = report?.transactions.length ?? 0;
 
           const renderFilterBtn = (
@@ -427,18 +435,18 @@ export function DailyReportPage() {
           return (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
               <h2 className="text-base font-semibold">
-                İşlem Listesi{" "}
+                {t("dailyReport.transactionList")}{" "}
                 {report && (
                   <Badge variant="secondary" className="ml-2">
-                    {totalCount} işlem
+                    {totalCount} {t("dailyReport.transactions")}
                   </Badge>
                 )}
               </h2>
               <div className="flex flex-wrap gap-2">
-                {renderFilterBtn("all", "Tüm İşlemler", totalCount, "grey")}
-                {renderFilterBtn("Deposit", "Yatırma", depositCount, "green")}
-                {renderFilterBtn("Withdrawal", "Çekme", withdrawalCount, "red")}
-                {renderFilterBtn("Conversion", "Dönüşümler", conversionCount, "blue")}
+                {renderFilterBtn("all", t("dailyReport.allTransactions"), totalCount, "grey")}
+                {renderFilterBtn("Deposit", t("dailyReport.deposit"), depositCount, "green")}
+                {renderFilterBtn("Withdrawal", t("dailyReport.withdrawal"), withdrawalCount, "red")}
+                {renderFilterBtn("Conversion", t("dailyReport.conversionFilter"), conversionCount, "blue")}
               </div>
             </div>
           );
@@ -448,24 +456,25 @@ export function DailyReportPage() {
           columns={columns}
           data={txData}
           headerActions={
-            <CustomerTypeFilter 
-              selectedTypes={selectedCustomerTypes} 
-              onChange={setSelectedCustomerTypes} 
+            <CustomerTypeFilter
+              types={customerTypes}
+              selectedTypes={selectedCustomerTypes}
+              onChange={setSelectedCustomerTypes}
             />
           }
           isLoading={loading}
-          searchPlaceholder="Müşteri veya açıklama ara..."
-          emptyMessage="Bu tarihler arasında işlem bulunmuyor"
+          searchPlaceholder={t("dailyReport.searchPlaceholder")}
+          emptyMessage={t("dailyReport.noData")}
           exportFilename={`islem-raporu-${format(fromDate, "yyyy-MM-dd")}-to-${format(toDate, "yyyy-MM-dd")}`}
           exportSummary={reportExportSummary}
           exportColumns={[
-            { accessor: "createdAt", header: "Tarih/Saat" },
-            { accessor: "customerFullName", header: "Müşteri" },
-            { accessor: "type", header: "İşlem Türü", formatter: (val) => formatTransactionType(val as string) },
-            { accessor: "assetTypeName", header: "Varlık" },
-            { accessor: "amount", header: "Miktar", formatter: (val) => (val as number)?.toLocaleString("tr-TR") ?? "0" },
-            { accessor: "description", header: "Açıklama" },
-            { accessor: "createdByFullName", header: "İşlemi Yapan" },
+            { accessor: "createdAt", header: t("dailyReport.export.dateTime") },
+            { accessor: "customerFullName", header: t("dailyReport.export.customer") },
+            { accessor: "type", header: t("dailyReport.export.type"), formatter: (val) => formatTransactionType(val as string) },
+            { accessor: "assetTypeName", header: t("dailyReport.export.asset") },
+            { accessor: "amount", header: t("dailyReport.export.amount"), formatter: (val) => (val as number)?.toLocaleString("tr-TR") ?? "0" },
+            { accessor: "description", header: t("dailyReport.export.description") },
+            { accessor: "createdByFullName", header: t("dailyReport.export.by") },
           ]}
         />
       </div>

@@ -5,10 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Kullanıcı adı gereklidir"),
-  password: z.string().min(1, "Şifre gereklidir"),
+  username: z.string().min(1, "username_required"),
+  password: z.string().min(1, "password_required"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -146,6 +147,7 @@ function DiamondLogo() {
 export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -168,7 +170,7 @@ export function LoginPage() {
       await login(data);
       navigate("/");
     } catch {
-      setError("Kullanıcı adı veya şifre hatalı.");
+      setError(t("login.error"));
     }
   };
 
@@ -515,34 +517,38 @@ export function LoginPage() {
         <div className={`login-card ${mounted ? "mounted" : ""}`}>
           <DiamondLogo />
 
-          <h1 className="login-heading">Cari Özel</h1>
-          <p className="login-subtitle">Hesabınıza giriş yapın</p>
+          <h1 className="login-heading">{t("login.title")}</h1>
+          <p className="login-subtitle">{t("login.subtitle")}</p>
 
           <form onSubmit={handleSubmit(onSubmit)}>
             {error && <div className="login-error">{error}</div>}
 
             <div className="login-field">
               <label htmlFor="login-username" className="login-label">
-                Kullanıcı Adı
+                {t("login.username")}
               </label>
               <div className="login-input-wrap">
                 <input
                   id="login-username"
                   className={`login-input ${errors.username ? "has-error" : ""}`}
                   {...register("username")}
-                  placeholder="kullanıcı adınızı girin"
+                  placeholder={t("login.usernamePlaceholder")}
                   autoComplete="username"
                   autoFocus
                 />
               </div>
               {errors.username && (
-                <p className="login-field-error">{errors.username.message}</p>
+                <p className="login-field-error">
+                  {errors.username.message === "username_required"
+                    ? t("login.validation.usernameRequired")
+                    : errors.username.message}
+                </p>
               )}
             </div>
 
             <div className="login-field">
               <label htmlFor="login-password" className="login-label">
-                Şifre
+                {t("login.password")}
               </label>
               <div className="login-input-wrap">
                 <input
@@ -559,7 +565,7 @@ export function LoginPage() {
                   className="pwd-toggle"
                   onClick={() => setShowPassword((v) => !v)}
                   tabIndex={-1}
-                  aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                  aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
                 >
                   {showPassword ? (
                     <EyeOff size={18} />
@@ -569,7 +575,11 @@ export function LoginPage() {
                 </button>
               </div>
               {errors.password && (
-                <p className="login-field-error">{errors.password.message}</p>
+                <p className="login-field-error">
+                  {errors.password.message === "password_required"
+                    ? t("login.validation.passwordRequired")
+                    : errors.password.message}
+                </p>
               )}
             </div>
 
@@ -581,16 +591,16 @@ export function LoginPage() {
               {isSubmitting ? (
                 <>
                   <span className="login-spinner" />
-                  Giriş yapılıyor…
+                  {t("login.submitting")}
                 </>
               ) : (
-                "Giriş Yap"
+                t("login.submit")
               )}
             </button>
           </form>
 
           <div className="login-footer">
-            Güvenli bağlantı <span>•</span> Şifreli iletişim
+            {t("login.secureConnection")} <span>•</span> {t("login.encryptedComm")}
           </div>
         </div>
       </div>

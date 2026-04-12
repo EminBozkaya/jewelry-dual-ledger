@@ -177,6 +177,7 @@ public class ReportService(AppDbContext db) : IReportService
             customer.Phone, customer.Address, customer.Email,
             customer.NationalId, customer.Type, customer.Notes,
             customer.Photo is not null && customer.Photo.Length > 0,
+            customer.IsDeleted,
             customer.CreatedAt);
 
         return new CustomerStatementDto(

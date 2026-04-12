@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using KuyumcuPrivate.Application.DTOs.Customers;
 using KuyumcuPrivate.Application.Interfaces;
 
@@ -9,9 +10,9 @@ public static class CustomerEndpoints
     {
         var group = app.MapGroup("/api/customers").WithTags("Customers").RequireAuthorization();
 
-        // GET /api/customers
-        group.MapGet("/", async (ICustomerService svc) =>
-            Results.Ok(await svc.GetAllAsync()));
+        // GET /api/customers?includeDeleted=false|true|null
+        group.MapGet("/", async (bool? includeDeleted, ICustomerService svc) =>
+            Results.Ok(await svc.GetAllAsync(includeDeleted)));
 
         // GET /api/customers/{id}
         group.MapGet("/{id:guid}", async (Guid id, ICustomerService svc) =>
@@ -53,6 +54,14 @@ public static class CustomerEndpoints
         {
             var result = await svc.DeleteAsync(id);
             return result ? Results.NoContent() : Results.NotFound();
+        });
+
+        // POST /api/customers/{id}/restore
+        group.MapPost("/{id:guid}/restore", async (Guid id, bool resetBalances, ICustomerService svc, ClaimsPrincipal user) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await svc.RestoreAsync(id, resetBalances, userId);
+            return result ? Results.Ok() : Results.NotFound();
         });
 
         // POST /api/customers/{id}/photo

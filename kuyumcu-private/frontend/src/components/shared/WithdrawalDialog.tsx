@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import type { AssetType, Balance, Customer, WithdrawalRequest } from "@/types";
 import { transactionApi } from "@/api/transactions";
@@ -47,39 +48,40 @@ function ConfirmStep({
   onConfirm: () => void;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   const asset = assetTypes.find((a) => a.id === assetTypeId);
   return (
     <div className="space-y-4 py-2">
-      <p className="text-sm text-muted-foreground">İşlemi onaylıyor musunuz?</p>
+      <p className="text-sm text-muted-foreground">{t("withdrawal.confirmQuestion")}</p>
       <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">İşlem:</span>
-          <span className="font-medium">Çekme</span>
+          <span className="text-muted-foreground">{t("withdrawal.transactionType")}:</span>
+          <span className="font-medium">{t("withdrawal.transactionTypeValue")}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Müşteri:</span>
+          <span className="text-muted-foreground">{t("withdrawal.customer")}:</span>
           <span className="font-medium">{customer.fullName}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Varlık:</span>
+          <span className="text-muted-foreground">{t("withdrawal.asset")}:</span>
           <span className="font-medium">{asset ? `${asset.name} (${asset.code})` : "—"}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Miktar:</span>
+          <span className="text-muted-foreground">{t("withdrawal.amount")}:</span>
           <span className="font-semibold text-red-700">
             -{asset ? formatAmount(parseFloat(amount.replace(",", ".")), asset.unitType) : amount}
           </span>
         </div>
         {description && (
           <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground shrink-0">Açıklama:</span>
+            <span className="text-muted-foreground shrink-0">{t("withdrawal.description")}:</span>
             <span className="text-right">{description}</span>
           </div>
         )}
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onBack} disabled={loading} className="min-h-11">
-          Geri
+          {t("withdrawal.back")}
         </Button>
         <Button
           variant="destructive"
@@ -87,7 +89,7 @@ function ConfirmStep({
           disabled={loading}
           className="min-h-11"
         >
-          {loading ? "Kaydediliyor..." : "✓ Onayla"}
+          {loading ? t("withdrawal.saving") : t("withdrawal.confirm")}
         </Button>
       </DialogFooter>
     </div>
@@ -102,6 +104,7 @@ export function WithdrawalDialog({
   balances,
   onSuccess,
 }: WithdrawalDialogProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<"form" | "confirm">("form");
   const [assetTypeId, setAssetTypeId] = useState("");
   const [amount, setAmount] = useState("");
@@ -136,9 +139,9 @@ export function WithdrawalDialog({
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!assetTypeId) errs.assetTypeId = "Varlık birimi seçilmeli";
+    if (!assetTypeId) errs.assetTypeId = t("withdrawal.validation.selectAsset");
     if (!amount || isNaN(parsedAmount) || parsedAmount <= 0)
-      errs.amount = "Geçerli bir miktar girin (> 0)";
+      errs.amount = t("withdrawal.validation.validAmount");
     return errs;
   };
 
@@ -166,13 +169,13 @@ export function WithdrawalDialog({
       const assetLabel = selectedAsset
         ? `${formatAmount(num, selectedAsset.unitType)} ${selectedAsset.code}`
         : amount;
-      toast.success(`${assetLabel} çekme işlemi başarılı`);
+      toast.success(`${assetLabel} ${t("withdrawal.successMsg")}`);
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? "Çekme işlemi başarısız");
+      toast.error(msg ?? t("withdrawal.errorMsg"));
       setStep("form");
     } finally {
       setLoading(false);
@@ -183,13 +186,13 @@ export function WithdrawalDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Çekme İşlemi — {customer.fullName}</DialogTitle>
+          <DialogTitle>{t("withdrawal.title")} — {customer.fullName}</DialogTitle>
         </DialogHeader>
 
         {step === "form" ? (
           <div className="space-y-4 py-2">
             <AssetTypeSelect
-              label="Varlık Birimi *"
+              label={`${t("withdrawal.assetUnit")} *`}
               value={assetTypeId}
               onChange={(id) => {
                 setAssetTypeId(id);
@@ -203,7 +206,7 @@ export function WithdrawalDialog({
             {/* Mevcut bakiye — sıfır veya negatif olsa da göster */}
             {assetTypeId && selectedAsset && (
               <div className="rounded-md bg-muted/50 px-3 py-2 text-sm flex items-center justify-between">
-                <span className="text-muted-foreground">Mevcut bakiye:</span>
+                <span className="text-muted-foreground">{t("withdrawal.currentBalance")}</span>
                 <span className={`font-semibold ${balanceAmount < 0 ? "text-red-600" : ""}`}>
                   {formatAmount(balanceAmount, currentBalance?.unitType ?? selectedAsset.unitType)}{" "}
                   {currentBalance?.assetTypeCode ?? selectedAsset.code}
@@ -213,7 +216,7 @@ export function WithdrawalDialog({
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label>Miktar *</Label>
+                <Label>{t("withdrawal.amount")} *</Label>
                 {assetTypeId && currentBalance && balanceAmount > 0 && (
                   <button
                     type="button"
@@ -227,7 +230,7 @@ export function WithdrawalDialog({
                       )
                     }
                   >
-                    Tamamını Çek
+                    {t("withdrawal.withdrawAll")}
                   </button>
                 )}
               </div>
@@ -246,12 +249,12 @@ export function WithdrawalDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Açıklama</Label>
+              <Label>{t("withdrawal.description")}</Label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
-                placeholder="İsteğe bağlı..."
+                placeholder={t("common.optional")}
               />
             </div>
 
@@ -261,14 +264,14 @@ export function WithdrawalDialog({
                 className="min-h-11"
                 onClick={() => onOpenChange(false)}
               >
-                İptal
+                {t("withdrawal.cancel")}
               </Button>
               <Button
                 variant="destructive"
                 className="min-h-11"
                 onClick={handleSubmit}
               >
-                Çek
+                {t("withdrawal.submit")}
               </Button>
             </DialogFooter>
           </div>

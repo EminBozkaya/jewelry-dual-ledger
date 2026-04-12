@@ -14,7 +14,7 @@ public static class BalanceEndpoints
         // Müşterinin tüm varlık bakiyelerini döner — sıfır olanlar dahil değil
         group.MapGet("/customer/{customerId:guid}", async (Guid customerId, AppDbContext db) =>
         {
-            var balances = await db.Balances
+            var balances = await db.Balances.IgnoreQueryFilters()
                 .Include(b => b.AssetType)
                 .Where(b => b.CustomerId == customerId && b.Amount != 0)
                 .OrderBy(b => b.AssetType.SortOrder)

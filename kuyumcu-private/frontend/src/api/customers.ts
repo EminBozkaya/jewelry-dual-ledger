@@ -2,7 +2,10 @@ import api from "./axios";
 import type { Customer, CustomerCreateRequest, CustomerUpdateRequest } from "@/types";
 
 export const customerApi = {
-  getAll: () => api.get<Customer[]>("/customers").then((r) => r.data),
+  getAll: (includeDeleted?: boolean | null) =>
+    api.get<Customer[]>("/customers", {
+      params: includeDeleted !== undefined ? { includeDeleted } : undefined,
+    }).then((r) => r.data),
 
   getById: (id: string) =>
     api.get<Customer>(`/customers/${id}`).then((r) => r.data),
@@ -14,6 +17,9 @@ export const customerApi = {
     api.put<Customer>(`/customers/${id}`, data).then((r) => r.data),
 
   delete: (id: string) => api.delete(`/customers/${id}`),
+
+  restore: (id: string, resetBalances: boolean) =>
+    api.post(`/customers/${id}/restore`, null, { params: { resetBalances } }),
 
   uploadPhoto: (id: string, file: File) => {
     const formData = new FormData();

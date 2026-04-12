@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowDownUp } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import type { AssetType, Balance, Customer, ConversionRequest } from "@/types";
 import { transactionApi } from "@/api/transactions";
@@ -61,68 +62,69 @@ function ConfirmStep({
   onConfirm: () => void;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   const fromAsset = assetTypes.find((a) => a.id === fromAssetTypeId);
   const toAsset = assetTypes.find((a) => a.id === toAssetTypeId);
   const fromNum = parseFloat(fromAmount.replace(",", "."));
   return (
     <div className="space-y-4 py-2">
-      <p className="text-sm text-muted-foreground">Dönüşümü onaylıyor musunuz?</p>
+      <p className="text-sm text-muted-foreground">{t("conversion.confirmQuestion")}</p>
       <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">İşlem:</span>
-          <span className="font-medium">Dönüşüm</span>
+          <span className="text-muted-foreground">{t("conversion.transactionType")}:</span>
+          <span className="font-medium">{t("conversion.transactionTypeValue")}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Müşteri:</span>
+          <span className="text-muted-foreground">{t("conversion.customer")}:</span>
           <span className="font-medium">{customer.fullName}</span>
         </div>
         <Separator />
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Verilecek:</span>
+          <span className="text-muted-foreground">{t("conversion.given")}</span>
           <span className="font-semibold text-red-700">
             -{fromAsset ? formatAmount(fromNum, fromAsset.unitType) : fromAmount}{" "}
             {fromAsset?.code}
           </span>
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Kuru ({fromAsset?.code}/TL):</span>
+          <span>{t("conversion.rateLabel")} ({fromAsset?.code}/TL):</span>
           <span>{formatMoney(parseFloat(fromRateTry.replace(",", ".")))} ₺</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">TL Karşılığı:</span>
+          <span className="text-muted-foreground">{t("conversion.tryEquivalent")}</span>
           <span className="font-medium">{formatMoney(tryEquivalent)} ₺</span>
         </div>
         <Separator />
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Alınacak:</span>
+          <span className="text-muted-foreground">{t("conversion.received")}</span>
           <span className="font-semibold text-green-700">
             +{toAsset ? formatAmount(toAmount, toAsset.unitType) : toAmount.toFixed(4)}{" "}
             {toAsset?.code}
           </span>
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Kuru ({toAsset?.code}/TL):</span>
+          <span>{t("conversion.rateLabel")} ({toAsset?.code}/TL):</span>
           <span>{formatMoney(parseFloat(toRateTry.replace(",", ".")))} ₺</span>
         </div>
         {rateNote && (
           <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground shrink-0">Kur Notu:</span>
+            <span className="text-muted-foreground shrink-0">{t("conversion.rateNoteLabel")}</span>
             <span className="text-right">{rateNote}</span>
           </div>
         )}
         {description && (
           <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground shrink-0">Açıklama:</span>
+            <span className="text-muted-foreground shrink-0">{t("conversion.descriptionLabel")}</span>
             <span className="text-right">{description}</span>
           </div>
         )}
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onBack} disabled={loading} className="min-h-11">
-          Geri
+          {t("conversion.back")}
         </Button>
         <Button onClick={onConfirm} disabled={loading} className="min-h-11">
-          {loading ? "Kaydediliyor..." : "🔄 Dönüşümü Uygula"}
+          {loading ? t("conversion.saving") : t("conversion.confirm")}
         </Button>
       </DialogFooter>
     </div>
@@ -137,6 +139,7 @@ export function ConversionDialog({
   balances,
   onSuccess,
 }: ConversionDialogProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<"form" | "confirm">("form");
   const [fromAssetTypeId, setFromAssetTypeId] = useState("");
   const [fromAmount, setFromAmount] = useState("");
@@ -191,22 +194,22 @@ export function ConversionDialog({
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!fromAssetTypeId) errs.fromAssetTypeId = "Kaynak varlık seçilmeli";
-    if (!toAssetTypeId) errs.toAssetTypeId = "Hedef varlık seçilmeli";
+    if (!fromAssetTypeId) errs.fromAssetTypeId = t("conversion.validation.selectSource");
+    if (!toAssetTypeId) errs.toAssetTypeId = t("conversion.validation.selectTarget");
     if (fromAssetTypeId && toAssetTypeId && fromAssetTypeId === toAssetTypeId)
-      errs.toAssetTypeId = "Kaynak ve hedef aynı olamaz";
+      errs.toAssetTypeId = t("conversion.validation.sameAsset");
 
     if (!fromAmount || isNaN(fromNum) || fromNum <= 0)
-      errs.fromAmount = "Geçerli miktar girin (> 0)";
+      errs.fromAmount = t("conversion.validation.validAmount");
     else if (exceedsBalance)
-      errs.fromAmount = "Miktar mevcut bakiyeyi aşamaz";
+      errs.fromAmount = t("conversion.validation.exceedsBalance");
 
     if (!fromRateTry || isNaN(fromRate) || fromRate <= 0)
-      errs.fromRateTry = "Kaynak kuru girin (> 0)";
+      errs.fromRateTry = t("conversion.validation.sourceRate");
     if (!toRateTry || isNaN(toRate) || toRate <= 0)
-      errs.toRateTry = "Hedef kuru girin (> 0)";
+      errs.toRateTry = t("conversion.validation.targetRate");
     if (toAmount <= 0 && !errs.fromAmount && !errs.fromRateTry && !errs.toRateTry)
-      errs.toRateTry = "Hesaplanan hedef miktar sıfır olamaz";
+      errs.toRateTry = t("conversion.validation.zeroTarget");
 
     return errs;
   };
@@ -236,14 +239,14 @@ export function ConversionDialog({
       setLoading(true);
       await transactionApi.convert(req);
       toast.success(
-        `Dönüşüm başarılı: ${fromAsset?.code} → ${toAsset?.code}`
+        `${t("conversion.successMsg")} ${fromAsset?.code} → ${toAsset?.code}`
       );
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg ?? "Dönüşüm işlemi başarısız");
+      toast.error(msg ?? t("conversion.errorMsg"));
       setStep("form");
     } finally {
       setLoading(false);
@@ -254,7 +257,7 @@ export function ConversionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Dönüşüm İşlemi — {customer.fullName}</DialogTitle>
+          <DialogTitle>{t("conversion.title")} — {customer.fullName}</DialogTitle>
         </DialogHeader>
 
         {step === "form" ? (
@@ -262,11 +265,11 @@ export function ConversionDialog({
             {/* KAYNAK */}
             <div className="rounded-lg border p-4 space-y-3">
               <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-                Kaynak (Verilecek)
+                {t("conversion.source")}
               </p>
 
               <AssetTypeSelect
-                label="Varlık Birimi *"
+                label={`${t("conversion.assetUnit")} *`}
                 value={fromAssetTypeId}
                 onChange={(id) => {
                   setFromAssetTypeId(id);
@@ -282,7 +285,7 @@ export function ConversionDialog({
               {/* Bakiye göster */}
               {fromAssetTypeId && fromBalance && (
                 <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-1.5 text-sm">
-                  <span className="text-muted-foreground">Mevcut bakiye:</span>
+                  <span className="text-muted-foreground">{t("conversion.currentBalance")}</span>
                   <button
                     type="button"
                     className="font-semibold text-primary underline"
@@ -303,7 +306,7 @@ export function ConversionDialog({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Miktar *</Label>
+                  <Label>{t("conversion.amount")} *</Label>
                   <Input
                     value={fromAmount}
                     onChange={(e) => {
@@ -320,7 +323,7 @@ export function ConversionDialog({
                 </div>
                 <div className="space-y-1.5">
                   <Label>
-                    TL Kuru *{" "}
+                    {t("conversion.tryRate")} *{" "}
                     {fromAsset && (
                       <span className="text-muted-foreground font-normal">
                         ({fromAsset.code}/TL)
@@ -346,7 +349,7 @@ export function ConversionDialog({
               {/* TL Karşılığı — otomatik */}
               {tryEquivalent > 0 && (
                 <div className="flex items-center justify-between rounded-md bg-blue-50 px-3 py-1.5 text-sm border border-blue-200">
-                  <span className="text-blue-700">TL Karşılığı:</span>
+                  <span className="text-blue-700">{t("conversion.tryEquivalent")}</span>
                   <span className="font-semibold text-blue-800">
                     {formatMoney(tryEquivalent)} ₺
                   </span>
@@ -366,11 +369,11 @@ export function ConversionDialog({
             {/* HEDEF */}
             <div className="rounded-lg border p-4 space-y-3">
               <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-                Hedef (Alınacak)
+                {t("conversion.target")}
               </p>
 
               <AssetTypeSelect
-                label="Varlık Birimi *"
+                label={`${t("conversion.assetUnit")} *`}
                 value={toAssetTypeId}
                 onChange={(id) => {
                   setToAssetTypeId(id);
@@ -383,7 +386,7 @@ export function ConversionDialog({
 
               <div className="space-y-1.5">
                 <Label>
-                  TL Kuru *{" "}
+                  {t("conversion.tryRate")} *{" "}
                   {toAsset && (
                     <span className="text-muted-foreground font-normal">
                       ({toAsset.code}/TL)
@@ -408,7 +411,7 @@ export function ConversionDialog({
               {/* Hesaplanan miktar — otomatik */}
               {toAmount > 0 && (
                 <div className="flex items-center justify-between rounded-md bg-green-50 px-3 py-1.5 text-sm border border-green-200">
-                  <span className="text-green-700">Hesaplanan Miktar:</span>
+                  <span className="text-green-700">{t("conversion.calculatedAmount")}</span>
                   <span className="font-semibold text-green-800">
                     {toAsset
                       ? formatAmount(toAmount, toAsset.unitType)
@@ -422,20 +425,20 @@ export function ConversionDialog({
             {/* Ek alanlar */}
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label>Kur Notu</Label>
+                <Label>{t("conversion.rateNote")}</Label>
                 <Input
                   value={rateNote}
                   onChange={(e) => setRateNote(e.target.value)}
-                  placeholder="Örn: Kapalıçarşı kuru, müşteri anlaşması..."
+                  placeholder={t("conversion.rateNotePlaceholder")}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Açıklama</Label>
+                <Label>{t("conversion.description")}</Label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
-                  placeholder="İsteğe bağlı..."
+                  placeholder={t("common.optional")}
                 />
               </div>
             </div>
@@ -446,10 +449,10 @@ export function ConversionDialog({
                 className="min-h-11"
                 onClick={() => onOpenChange(false)}
               >
-                İptal
+                {t("conversion.cancel")}
               </Button>
               <Button className="min-h-11" onClick={handleSubmit}>
-                Dönüştür
+                {t("conversion.submit")}
               </Button>
             </DialogFooter>
           </div>
