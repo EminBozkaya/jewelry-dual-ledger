@@ -7,7 +7,7 @@ public record CustomerResponse(
     string FirstName,
     string LastName,
     string FullName,
-    string Phone,
+    string? Phone,
     string? Address,
     string? Email,
     string? NationalId,

@@ -10,9 +10,23 @@ public class CustomerService(AppDbContext db) : ICustomerService
 {
     public async Task<List<CustomerResponse>> GetAllAsync()
     {
+        // İnline projeksiyon: EF Core bunu SQL'e çevirebilir ve Photo blob'unu yüklemez
         return await db.Customers
             .OrderBy(c => c.LastName).ThenBy(c => c.FirstName)
-            .Select(c => ToResponse(c))
+            .Select(c => new CustomerResponse(
+                c.Id,
+                c.FirstName,
+                c.LastName,
+                c.FirstName + " " + c.LastName,
+                c.Phone,
+                c.Address,
+                c.Email,
+                c.NationalId,
+                c.Type,
+                c.Notes,
+                c.Photo != null,
+                c.CreatedAt
+            ))
             .ToListAsync();
     }
 
@@ -24,16 +38,25 @@ public class CustomerService(AppDbContext db) : ICustomerService
 
     public async Task<CustomerResponse> CreateAsync(CustomerCreateRequest request)
     {
+        var phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        var nationalId = string.IsNullOrWhiteSpace(request.NationalId) ? null : request.NationalId.Trim();
+
+        if (phone != null && !request.IgnorePhoneWarning && await db.Customers.AnyAsync(c => c.Phone == phone && !c.IsDeleted))
+            throw new InvalidOperationException("PHONE_EXISTS");
+            
+        if (nationalId != null && await db.Customers.AnyAsync(c => c.NationalId == nationalId && !c.IsDeleted))
+            throw new InvalidOperationException("Bu TC Kimlik numarası ile kayıtlı bir müşteri zaten var.");
+
         var customer = new Customer
         {
             FirstName  = request.FirstName.Trim(),
             LastName   = request.LastName.Trim(),
-            Phone      = request.Phone.Trim(),
-            Address    = request.Address?.Trim(),
-            Email      = request.Email?.Trim(),
-            NationalId = request.NationalId?.Trim(),
+            Phone      = phone,
+            Address    = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
+            Email      = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
+            NationalId = nationalId,
             Type       = request.Type,
-            Notes      = request.Notes?.Trim()
+            Notes      = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim()
         };
 
         db.Customers.Add(customer);
@@ -46,14 +69,23 @@ public class CustomerService(AppDbContext db) : ICustomerService
         var customer = await db.Customers.FindAsync(id);
         if (customer is null) return null;
 
+        var phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        var nationalId = string.IsNullOrWhiteSpace(request.NationalId) ? null : request.NationalId.Trim();
+
+        if (phone != null && customer.Phone != phone && !request.IgnorePhoneWarning && await db.Customers.AnyAsync(c => c.Phone == phone && !c.IsDeleted))
+            throw new InvalidOperationException("PHONE_EXISTS");
+            
+        if (nationalId != null && customer.NationalId != nationalId && await db.Customers.AnyAsync(c => c.NationalId == nationalId && !c.IsDeleted))
+            throw new InvalidOperationException("Bu TC Kimlik numarası ile kayıtlı bir müşteri zaten var.");
+
         customer.FirstName  = request.FirstName.Trim();
         customer.LastName   = request.LastName.Trim();
-        customer.Phone      = request.Phone.Trim();
-        customer.Address    = request.Address?.Trim();
-        customer.Email      = request.Email?.Trim();
-        customer.NationalId = request.NationalId?.Trim();
+        customer.Phone      = phone;
+        customer.Address    = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        customer.Email      = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
+        customer.NationalId = nationalId;
         customer.Type       = request.Type;
-        customer.Notes      = request.Notes?.Trim();
+        customer.Notes      = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
 
         await db.SaveChangesAsync();
         return ToResponse(customer);
@@ -85,6 +117,21 @@ public class CustomerService(AppDbContext db) : ICustomerService
         var customer = await db.Customers.FindAsync(id);
         if (customer?.Photo == null) return null;
         return new CustomerPhoto(customer.Photo, customer.PhotoContentType ?? "image/jpeg");
+    }
+
+    public async Task<bool> DeletePhotoAsync(Guid id)
+    {
+        var customer = await db.Customers.FindAsync(id);
+        if (customer is null) return false;
+
+        if (customer.Photo != null)
+        {
+            customer.Photo = null;
+            customer.PhotoContentType = null;
+            await db.SaveChangesAsync();
+        }
+        
+        return true;
     }
 
     private static CustomerResponse ToResponse(Customer c) => new(

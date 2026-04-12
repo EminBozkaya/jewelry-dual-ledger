@@ -45,14 +45,18 @@ const schema = z.object({
   firstName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
   lastName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
   type: z.number().int().min(0, "Müşteri tipi seçiniz"),
-  phone: z.string().superRefine((val, ctx) => {
-    if (!val) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Telefon zorunludur" });
-      return;
-    }
+  phone: z.string().optional().nullable().superRefine((val, ctx) => {
+    if (!val || val.trim() === "") return;
+    
     const parts = val.split(" ");
+    if (parts.length < 2) return;
+    
     const code = parts[0];
     const num = parts.slice(1).join("").replace(/\D/g, "");
+    
+    // Eğer numara kısmı tamamen boşsa validasyona girme
+    if (num.length === 0) return;
+
     if (code === "+90") {
       if (num.length !== 10) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "10 haneli telefon numarası girmelisiniz" });
@@ -102,6 +106,9 @@ export function CustomerListPage() {
   };
 
   // Dinamik sütunlar (customerTypes yüklenince badge güncellensin diye içeride)
+  // Fotoğraf cache-busting: veri her yüklendiğinde artırılır
+  const [photoVersion, setPhotoVersion] = useState(0);
+
   const columns: ColumnDef<Customer>[] = [
     {
       id: "avatar",
@@ -114,7 +121,7 @@ export function CustomerListPage() {
           <Avatar className="h-10 w-10 hidden sm:flex border border-black/[0.05] dark:border-white/[0.05] shadow-sm">
             {c.hasPhoto && (
               <AvatarImage
-                src={customerApi.getPhotoUrl(c.id)}
+                src={`${customerApi.getPhotoUrl(c.id)}?v=${photoVersion}`}
                 className="object-cover"
                 alt={c.fullName}
               />
@@ -182,6 +189,7 @@ export function CustomerListPage() {
       ]);
       setCustomers(data);
       setCustomerTypes(types);
+      setPhotoVersion((v) => v + 1);
     } catch {
       toast.error("Veriler yüklenemedi");
     } finally {
@@ -199,7 +207,7 @@ export function CustomerListPage() {
       const req: CustomerCreateRequest = {
         firstName: values.firstName,
         lastName: values.lastName,
-        phone: values.phone,
+        phone: values.phone || undefined,
         type: values.type,
         nationalId: values.nationalId || undefined,
         email: values.email || undefined,
@@ -211,8 +219,9 @@ export function CustomerListPage() {
       reset();
       setDialogOpen(false);
       await load();
-    } catch {
-      toast.error("Müşteri oluşturulamadı");
+    } catch (err: any) {
+      const msg = err.response?.data?.error || "Müşteri oluşturulamadı";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -310,7 +319,7 @@ export function CustomerListPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="phone">Telefon *</Label>
+              <Label htmlFor="phone">Telefon</Label>
               <Controller
                 control={control}
                 name="phone"

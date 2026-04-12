@@ -111,7 +111,7 @@ export function DataTable<TData>({
             value={globalFilter}
             onChange={setGlobalFilter}
             placeholder={searchPlaceholder}
-            className="w-full sm:max-w-xs"
+            className="w-full shrink-0 sm:w-[360px] md:w-[420px]"
           />
           {headerActions}
         </div>

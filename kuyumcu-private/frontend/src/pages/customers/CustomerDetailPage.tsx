@@ -55,14 +55,18 @@ const schema = z.object({
   firstName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
   lastName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
   type: z.number().int().min(0, "Müşteri tipi seçiniz"),
-  phone: z.string().superRefine((val, ctx) => {
-    if (!val) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Telefon zorunludur" });
-      return;
-    }
+  phone: z.string().optional().nullable().superRefine((val, ctx) => {
+    if (!val || val.trim() === "") return;
+    
     const parts = val.split(" ");
+    if (parts.length < 2) return;
+
     const code = parts[0];
     const num = parts.slice(1).join("").replace(/\D/g, "");
+
+    // Eğer numara kısmı tamamen boşsa validasyona girme
+    if (num.length === 0) return;
+
     if (code === "+90") {
       if (num.length !== 10) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "10 haneli telefon numarası girmelisiniz" });
@@ -517,6 +521,8 @@ export function CustomerDetailPage() {
   const [ozetOpen, setOzetOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePhotoOpen, setDeletePhotoOpen] = useState(false);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<Transaction | null>(null);
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -618,6 +624,20 @@ export function CustomerDetailPage() {
     e.target.value = "";
   };
 
+  const executePhotoDelete = async () => {
+    if (!id || !customer?.hasPhoto) return;
+    
+    try {
+      await customerApi.deletePhoto(id);
+      toast.success("Fotoğraf silindi");
+      setPhotoKey((k) => k + 1);
+      setCustomer((c) => c ? { ...c, hasPhoto: false } : c);
+      setDeletePhotoOpen(false);
+    } catch {
+      toast.error("Fotoğraf silinemedi");
+    }
+  };
+
   // ── Düzenleme ──────────────────────────────────────────────
   const openEdit = () => {
     if (!customer) return;
@@ -641,7 +661,7 @@ export function CustomerDetailPage() {
       const req: CustomerUpdateRequest = {
         firstName: values.firstName,
         lastName: values.lastName,
-        phone: values.phone,
+        phone: values.phone || undefined,
         type: values.type,
         nationalId: values.nationalId || undefined,
         email: values.email || undefined,
@@ -653,8 +673,9 @@ export function CustomerDetailPage() {
       breadcrumbLabelRegistry.set(id, `${updated.firstName} ${updated.lastName}`);
       toast.success("Müşteri güncellendi");
       setEditOpen(false);
-    } catch {
-      toast.error("Güncelleme başarısız");
+    } catch (err: any) {
+      const msg = err.response?.data?.error || "Güncelleme başarısız";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -891,54 +912,76 @@ export function CustomerDetailPage() {
         }
       />
 
-      {/* Bilgi Kartı + Portföy Özeti */}
-      <Card className="max-w-3xl mx-auto">
+      {/* Bilgi Kartı — Tam genişlik, 3 sütun: Avatar | Bilgiler | Portföy */}
+      <Card>
         <CardContent className="p-6">
-          {/* Mobil: alt alta — Masaüstü: 50/50 yan yana, divider ortada */}
+          {/* Mobil: alt alta — Masaüstü: 3 sütun yan yana, aralarda divider */}
           <div className="flex flex-col gap-6 sm:flex-row sm:gap-0 sm:divide-x sm:divide-border">
 
-            {/* Sol — Avatar üstte, bilgiler altta, içerik sol panelde ortalı */}
-            <div className="flex flex-col gap-3 items-center sm:flex-1 sm:pr-6">
-              {/* Avatar */}
-              <div className="relative w-fit">
-                <Avatar
-                  className="h-16 w-16 cursor-pointer"
+            {/* Sol — Büyük Avatar ve İşlem Butonları */}
+            <div className="flex flex-col items-center justify-center sm:pr-8 sm:pl-4 shrink-0 gap-3">
+              <Avatar
+                className={`h-32 w-32 border-4 border-background shadow-md ${customer.hasPhoto ? "cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" : ""}`}
+                onClick={() => {
+                  if (customer.hasPhoto) setPhotoViewerOpen(true);
+                }}
+                title={customer.hasPhoto ? "Orijinal boyutu gör" : undefined}
+              >
+                {customer.hasPhoto && (
+                  <AvatarImage
+                    key={photoKey}
+                    src={`${customerApi.getPhotoUrl(customer.id)}?v=${photoKey}`}
+                    className="object-cover"
+                  />
+                )}
+                <AvatarFallback className="text-3xl font-bold bg-primary/10">{initials}</AvatarFallback>
+              </Avatar>
+              
+              {/* Fotoğraf İşlem Butonları */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-3 text-xs"
                   onClick={() => fileRef.current?.click()}
-                  title="Fotoğraf yükle"
                 >
-                  {customer.hasPhoto && (
-                    <AvatarImage
-                      key={photoKey}
-                      src={`${customerApi.getPhotoUrl(customer.id)}?v=${photoKey}`}
-                    />
-                  )}
-                  <AvatarFallback className="text-lg bg-primary/10">{initials}</AvatarFallback>
-                </Avatar>
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow"
-                >
-                  <Upload className="h-3 w-3" />
-                </button>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/svg+xml,image/gif,image/avif"
-                  className="hidden"
-                  onChange={handlePhotoChange}
-                />
+                  <Upload className="h-3 w-3 mr-1.5" />
+                  Güncelle
+                </Button>
+
+                {customer.hasPhoto && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-3 text-xs text-destructive border-destructive/20 hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeletePhotoOpen(true)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1.5" />
+                    Kaldır
+                  </Button>
+                )}
               </div>
 
-              {/* Bilgiler */}
-              <div className="space-y-0.5 text-center">
-                <div className="flex flex-col items-center gap-1.5 mb-1.5">
-                  <h2 className="text-lg font-bold shadow-none">{customer.fullName}</h2>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml,image/gif,image/avif"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+            </div>
+
+            {/* Orta — Müşteri Bilgileri */}
+            <div className="flex flex-col justify-center sm:w-[35%] sm:px-8">
+              <div className="space-y-1.5">
+                <div className="flex flex-col items-start gap-1.5 mb-2">
+                  <h2 className="text-2xl font-bold">{customer.fullName}</h2>
                   {(() => {
                     const cfg = customerTypes.find((t) => t.value === Number(customer.type));
                     if (!cfg) return null;
                     return (
                       <span
-                        className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium"
                         style={{
                           backgroundColor: cfg.colorHex + "22",
                           color: cfg.colorHex,
@@ -950,24 +993,26 @@ export function CustomerDetailPage() {
                     );
                   })()}
                 </div>
-                <p className="text-sm text-muted-foreground">{customer.phone}</p>
-                {customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}
-                {customer.nationalId && (
-                  <p className="text-sm text-muted-foreground">TC: {customer.nationalId}</p>
-                )}
-                {customer.address && (
-                  <p className="text-sm text-muted-foreground mt-1">{customer.address}</p>
-                )}
-                {customer.notes && (
-                  <p className="text-sm italic text-muted-foreground">{customer.notes}</p>
-                )}
+                <div className="space-y-0.5">
+                  <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                  {customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}
+                  {customer.nationalId && (
+                    <p className="text-sm text-muted-foreground">TC: {customer.nationalId}</p>
+                  )}
+                  {customer.address && (
+                    <p className="text-sm text-muted-foreground mt-1">{customer.address}</p>
+                  )}
+                  {customer.notes && (
+                    <p className="text-sm italic text-muted-foreground">{customer.notes}</p>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground pt-1">
                   Kayıt: {formatDateShort(customer.createdAt)}
                 </p>
               </div>
             </div>
 
-            {/* Sağ — Portföy: gruplu, alt alta, 2 sütun, içerik sağ panelde ortalı */}
+            {/* Sağ — Portföy Özeti */}
             {(() => {
               const assetMap = new Map(assetTypes.map((a) => [a.id, a]));
               const doviz = balances.filter((b) => b.unitType === "Currency");
@@ -981,10 +1026,9 @@ export function CustomerDetailPage() {
               ].filter((g) => g.items.length > 0);
 
               return (
-                <div className="sm:flex-1 sm:pl-6 sm:flex sm:justify-center sm:items-start">
-                  {/* İç kutu: doğal genişlik, panelde ortalı */}
-                  <div className="w-full sm:w-48">
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3 text-center">
+                <div className="sm:flex-1 sm:pl-8 flex justify-center sm:justify-start items-start">
+                  <div className="w-full max-w-xs">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                       Portföy
                     </p>
                     {balances.length === 0 ? (
@@ -1025,12 +1069,12 @@ export function CustomerDetailPage() {
             })()}
           </div>
 
-          {/* Özet Bakiye Hesapla butonu — divider'ın altında, ortalı */}
+          {/* Genel Bakiye Hesapla butonu — üstte border, ortalı */}
           {balances.length > 0 && (
-            <div className="mt-5 flex justify-center">
+            <div className="mt-5 pt-5 border-t border-border flex justify-center">
               <button
                 onClick={() => setOzetOpen(true)}
-                className="group flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300"
+                className="group flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300"
                 style={{
                   color: "var(--color-gold)",
                   background: "rgba(212,164,55,0.06)",
@@ -1333,7 +1377,7 @@ export function CustomerDetailPage() {
               {errors.type && <p className="text-xs text-destructive">{errors.type.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label>Telefon *</Label>
+              <Label>Telefon</Label>
               <Controller
                 control={control}
                 name="phone"
@@ -1394,6 +1438,17 @@ export function CustomerDetailPage() {
         destructive
       />
 
+      {/* Fotoğraf Silme Onay Dialog */}
+      <ConfirmDialog
+        open={deletePhotoOpen}
+        onOpenChange={setDeletePhotoOpen}
+        title="Fotoğrafı Kaldır"
+        description="Müşteri fotoğrafını silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
+        confirmLabel="Kaldır"
+        onConfirm={executePhotoDelete}
+        destructive
+      />
+
       {/* İşlem İptal Dialog */}
       <CancelDialog
         open={cancelTarget !== null}
@@ -1438,6 +1493,19 @@ export function CustomerDetailPage() {
         balances={balances}
         assetTypes={assetTypes}
       />
+
+      {/* Fotoğraf Görüntüleme Dialog */}
+      <Dialog open={photoViewerOpen} onOpenChange={setPhotoViewerOpen}>
+        <DialogContent className="max-w-4xl p-1 bg-transparent border-none shadow-none flex justify-center items-center">
+          {customer?.hasPhoto && (
+            <img
+              src={`${customerApi.getPhotoUrl(customer.id)}?v=${photoKey}`}
+              alt={customer.fullName}
+              className="w-auto h-auto max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl ring-4 ring-background/10"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

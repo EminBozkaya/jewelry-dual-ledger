@@ -23,5 +23,7 @@ export const customerApi = {
     });
   },
 
+  deletePhoto: (id: string) => api.delete(`/customers/${id}/photo`),
+
   getPhotoUrl: (id: string) => `/api/customers/${id}/photo`,
 };

@@ -23,15 +23,29 @@ public static class CustomerEndpoints
         // POST /api/customers
         group.MapPost("/", async (CustomerCreateRequest request, ICustomerService svc) =>
         {
-            var created = await svc.CreateAsync(request);
-            return Results.Created($"/api/customers/{created.Id}", created);
+            try
+            {
+                var created = await svc.CreateAsync(request);
+                return Results.Created($"/api/customers/{created.Id}", created);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.Conflict(new { error = ex.Message });
+            }
         });
 
         // PUT /api/customers/{id}
         group.MapPut("/{id:guid}", async (Guid id, CustomerUpdateRequest request, ICustomerService svc) =>
         {
-            var updated = await svc.UpdateAsync(id, request);
-            return updated is null ? Results.NotFound() : Results.Ok(updated);
+            try
+            {
+                var updated = await svc.UpdateAsync(id, request);
+                return updated is null ? Results.NotFound() : Results.Ok(updated);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.Conflict(new { error = ex.Message });
+            }
         });
 
         // DELETE /api/customers/{id}  — soft delete
@@ -61,5 +75,12 @@ public static class CustomerEndpoints
             var photo = await svc.GetPhotoAsync(id);
             return photo is null ? Results.NotFound() : Results.File(photo.Bytes, photo.ContentType);
         }).WithTags("Customers");
+
+        // DELETE /api/customers/{id}/photo
+        group.MapDelete("/{id:guid}/photo", async (Guid id, ICustomerService svc) =>
+        {
+            var result = await svc.DeletePhotoAsync(id);
+            return result ? Results.NoContent() : Results.NotFound();
+        });
     }
 }

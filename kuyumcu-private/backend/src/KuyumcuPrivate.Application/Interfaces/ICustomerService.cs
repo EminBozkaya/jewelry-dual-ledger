@@ -11,6 +11,7 @@ public interface ICustomerService
     Task<bool> DeleteAsync(Guid id);                          // Soft delete
     Task<bool> UploadPhotoAsync(Guid id, byte[] photoBytes, string contentType);
     Task<CustomerPhoto?> GetPhotoAsync(Guid id);
+    Task<bool> DeletePhotoAsync(Guid id);
 }
 
 public record CustomerPhoto(byte[] Bytes, string ContentType);
