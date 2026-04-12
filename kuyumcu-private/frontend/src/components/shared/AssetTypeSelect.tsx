@@ -30,25 +30,17 @@ export interface AssetTypeSelectProps {
   placeholder?: string;
 }
 
-// Sabit grup tanımları
-const GROUPS = [
-  {
-    label: "Para Birimleri",
-    codes: ["TRY", "USD", "EUR", "GBP"],
-  },
-  {
-    label: "Altın (Adet)",
-    codes: ["CEYREK", "YARIM", "TAM", "ATA", "GREMSE", "BESLI"],
-  },
-  {
-    label: "Altın (Gram)",
-    codes: ["22AYAR", "24AYAR"],
-  },
-  {
-    label: "Diğer",
-    codes: ["GUMUS"],
-  },
-] as const;
+// unitType + karat alanına göre dinamik gruplama
+function groupAssets(assets: AssetType[]) {
+  const doviz = assets.filter((a) => a.unitType === "Currency");
+  const altin = assets.filter((a) => a.unitType !== "Currency" && a.karat != null);
+  const diger = assets.filter((a) => a.unitType !== "Currency" && a.karat == null);
+  return [
+    { label: "Döviz", items: doviz },
+    { label: "Altın", items: altin },
+    { label: "Diğer", items: diger },
+  ].filter((g) => g.items.length > 0);
+}
 
 export function AssetTypeSelect({
   value,
@@ -69,14 +61,7 @@ export function AssetTypeSelect({
   const selected = assetTypes.find((a) => a.id === value);
 
   // Gruplara ayır
-  const groups = GROUPS.map((g) => ({
-    label: g.label,
-    items: available.filter((a) => (g.codes as readonly string[]).includes(a.code)),
-  })).filter((g) => g.items.length > 0);
-
-  // Grupsuz kalanlar
-  const allGroupedCodes = GROUPS.flatMap((g) => g.codes as readonly string[]);
-  const ungrouped = available.filter((a) => !allGroupedCodes.includes(a.code));
+  const groups = groupAssets(available);
 
   return (
     <div className="space-y-1.5">
@@ -138,35 +123,6 @@ export function AssetTypeSelect({
                   </CommandGroup>
                 </Fragment>
               ))}
-
-              {ungrouped.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Diğer">
-                    {ungrouped.map((a) => {
-                      const isDisabled = disabledIds.includes(a.id);
-                      return (
-                        <CommandItem
-                          key={a.id}
-                          value={`${a.code} ${a.name}`}
-                          data-checked={value === a.id}
-                          disabled={isDisabled}
-                          onSelect={() => {
-                            if (!isDisabled) {
-                              onChange(a.id);
-                              setOpen(false);
-                            }
-                          }}
-                          className="min-h-9"
-                        >
-                          <span className="font-medium w-16 shrink-0">{a.code}</span>
-                          <span className="text-muted-foreground">{a.name}</span>
-                        </CommandItem>
-                      );
-                    })}
-                  </CommandGroup>
-                </>
-              )}
             </CommandList>
           </Command>
         </PopoverContent>

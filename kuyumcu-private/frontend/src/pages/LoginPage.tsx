@@ -263,9 +263,7 @@ export function LoginPage() {
           position: absolute;
           inset: 1px;
           border-radius: 19px;
-          background: rgba(18, 18, 26, 0.85);
-          backdrop-filter: blur(40px);
-          -webkit-backdrop-filter: blur(40px);
+          background: rgb(18, 18, 26);
           z-index: -1;
         }
         

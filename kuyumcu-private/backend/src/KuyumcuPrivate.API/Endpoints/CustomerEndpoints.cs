@@ -42,24 +42,24 @@ public static class CustomerEndpoints
         });
 
         // POST /api/customers/{id}/photo
-        group.MapPost("/{id:guid}/photo", async (Guid id, HttpRequest request, ICustomerService svc) =>
+        group.MapPost("/{id:guid}/photo", async (Guid id, IFormFile photo, ICustomerService svc) =>
         {
+            if (photo is null || photo.Length == 0) return Results.BadRequest("Fotoğraf boş olamaz.");
+            if (photo.Length > 5 * 1024 * 1024) return Results.BadRequest("Fotoğraf 5MB'ı geçemez.");
+
             using var ms = new MemoryStream();
-            await request.Body.CopyToAsync(ms);
+            await photo.CopyToAsync(ms);
             var bytes = ms.ToArray();
 
-            if (bytes.Length == 0) return Results.BadRequest("Fotoğraf boş olamaz.");
-            if (bytes.Length > 5 * 1024 * 1024) return Results.BadRequest("Fotoğraf 5MB'ı geçemez.");
-
-            var result = await svc.UploadPhotoAsync(id, bytes);
+            var result = await svc.UploadPhotoAsync(id, bytes, photo.ContentType);
             return result ? Results.Ok() : Results.NotFound();
-        });
+        }).DisableAntiforgery();
 
         // GET /api/customers/{id}/photo
-        group.MapGet("/{id:guid}/photo", async (Guid id, ICustomerService svc) =>
+        app.MapGet("/api/customers/{id:guid}/photo", async (Guid id, ICustomerService svc) =>
         {
             var photo = await svc.GetPhotoAsync(id);
-            return photo is null ? Results.NotFound() : Results.File(photo, "image/jpeg");
-        });
+            return photo is null ? Results.NotFound() : Results.File(photo.Bytes, photo.ContentType);
+        }).WithTags("Customers");
     }
 }

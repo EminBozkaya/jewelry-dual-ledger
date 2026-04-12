@@ -9,6 +9,8 @@ import {
   Calendar,
   FileText,
   UserCog,
+  Gem,
+  Tag,
   LogOut,
 } from "lucide-react";
 import {
@@ -32,7 +34,7 @@ import { cn } from "@/lib/utils";
 
 const mainNav = [
   {
-    title: "Gösterge Paneli",
+    title: "Mağaza Portföyü",
     icon: LayoutDashboard,
     href: "/",
   },
@@ -44,12 +46,16 @@ const mainNav = [
 ];
 
 const reportsNav = [
-  { title: "Genel Portföy", href: "/reports/portfolio", icon: PieChart },
-  { title: "Günlük Rapor", href: "/reports/daily", icon: Calendar },
+  { title: "Mağaza Bakiye", href: "/reports/portfolio", icon: PieChart },
+  { title: "Müşteri İşlemleri", href: "/reports/daily", icon: Calendar },
   { title: "Müşteri Ekstre", href: "/reports/statement", icon: FileText },
 ];
 
-const adminNav = [{ title: "Kullanıcılar", href: "/admin/users", icon: UserCog }];
+const adminNav = [
+  { title: "Kullanıcılar", href: "/admin/users", icon: UserCog },
+  { title: "Varlık Tipleri", href: "/admin/asset-types", icon: Gem },
+  { title: "Müşteri Tipleri", href: "/admin/customer-types", icon: Tag },
+];
 
 /* ── Inline diamond logo for sidebar ── */
 function SidebarLogo() {

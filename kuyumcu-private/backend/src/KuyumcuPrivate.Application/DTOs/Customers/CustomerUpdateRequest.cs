@@ -1,3 +1,5 @@
+using KuyumcuPrivate.Domain.Enums;
+
 namespace KuyumcuPrivate.Application.DTOs.Customers;
 
 public record CustomerUpdateRequest(
@@ -7,5 +9,6 @@ public record CustomerUpdateRequest(
     string? Address,
     string? Email,
     string? NationalId,
+    CustomerType Type,
     string? Notes
 );

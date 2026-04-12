@@ -7,6 +7,7 @@ interface AmountDisplayProps {
   unitType: UnitType;
   showSign?: boolean;
   size?: "sm" | "md" | "lg";
+  invertPolarity?: boolean;
   className?: string;
 }
 
@@ -15,11 +16,14 @@ export function AmountDisplay({
   unitType,
   showSign = false,
   size = "md",
+  invertPolarity = false,
   className,
 }: AmountDisplayProps) {
-  const isPositive = value > 0;
-  const isNegative = value < 0;
-  const isZero = value === 0;
+  const displayValue = invertPolarity ? value * -1 : value;
+  
+  const isPositive = displayValue > 0;
+  const isNegative = displayValue < 0;
+  const isZero = displayValue === 0;
 
   const colorClass = isPositive
     ? "text-[var(--color-alacak)]"

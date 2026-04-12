@@ -1,4 +1,5 @@
 using KuyumcuPrivate.Application.DTOs.Transactions;
+using KuyumcuPrivate.Domain.Enums;
 using KuyumcuPrivate.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -57,6 +58,7 @@ public static class DashboardEndpoints
                     t.Id,
                     t.CustomerId,
                     $"{t.Customer.FirstName} {t.Customer.LastName}",
+                    t.Customer.Type,
                     t.Type,
                     t.AssetType?.Code,
                     t.AssetType?.Name,

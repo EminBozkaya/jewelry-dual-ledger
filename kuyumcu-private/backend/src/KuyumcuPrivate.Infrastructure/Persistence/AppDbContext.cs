@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<User> Users => Set<User>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<AssetType> AssetTypes => Set<AssetType>();
+    public DbSet<CustomerTypeConfig> CustomerTypeConfigs => Set<CustomerTypeConfig>();
     public DbSet<Balance> Balances => Set<Balance>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Conversion> Conversions => Set<Conversion>();
@@ -77,9 +78,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(x => x.ToAsset).WithMany().HasForeignKey(x => x.ToAssetId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Seed: Varsayılan varlık birimleri
+        // CustomerTypeConfig
+        modelBuilder.Entity<CustomerTypeConfig>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Value).IsUnique();
+        });
+
+        // Seed: Varsayılan varlık birimleri ve müşteri tipleri
         SeedAssetTypes(modelBuilder);
+        SeedCustomerTypeConfigs(modelBuilder);
         SeedUsers(modelBuilder);
+    }
+
+    private static void SeedCustomerTypeConfigs(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CustomerTypeConfig>().HasData(
+            new CustomerTypeConfig { Id = Guid.Parse("10000000-0000-0000-0000-000000000001"), Value = 0, Name = "Özel Müşteri",  ColorHex = "#3b82f6", IsActive = true, SortOrder = 1 },
+            new CustomerTypeConfig { Id = Guid.Parse("10000000-0000-0000-0000-000000000002"), Value = 1, Name = "Kuyumcu",       ColorHex = "#8b5cf6", IsActive = true, SortOrder = 2 },
+            new CustomerTypeConfig { Id = Guid.Parse("10000000-0000-0000-0000-000000000003"), Value = 2, Name = "Tedarikçi",     ColorHex = "#f59e0b", IsActive = true, SortOrder = 3 }
+        );
     }
 
     private static void SeedUsers(ModelBuilder modelBuilder)
@@ -103,15 +121,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Code = "USD",    Name = "Dolar",          UnitType = UnitType.Currency, SortOrder = 2 },
             new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000003"), Code = "EUR",    Name = "Euro",           UnitType = UnitType.Currency, SortOrder = 3 },
             new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000004"), Code = "GBP",    Name = "Sterlin",        UnitType = UnitType.Currency, SortOrder = 4 },
-            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000005"), Code = "GOLD22", Name = "22 Ayar Altın",  UnitType = UnitType.Gram,     Karat = 22, GramWeight = 1m,     SortOrder = 5 },
-            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000006"), Code = "GOLD24", Name = "24 Ayar Altın",  UnitType = UnitType.Gram,     Karat = 24, GramWeight = 1m,     SortOrder = 6 },
-            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000007"), Code = "CEYREK", Name = "Çeyrek Altın",   UnitType = UnitType.Piece,    Karat = 22, GramWeight = 1.75m,  SortOrder = 7 },
-            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000008"), Code = "YARIM",  Name = "Yarım Altın",    UnitType = UnitType.Piece,    Karat = 22, GramWeight = 3.50m,  SortOrder = 8 },
-            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000009"), Code = "LIRA",   Name = "Tam Altın",      UnitType = UnitType.Piece,    Karat = 22, GramWeight = 7.02m,  SortOrder = 9 },
-            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000010"), Code = "ATA",    Name = "Ata Altın",      UnitType = UnitType.Piece,    Karat = 22, GramWeight = 7.21m,  SortOrder = 10 },
-            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000011"), Code = "GREMSE", Name = "Gremse Altın",   UnitType = UnitType.Piece,    Karat = 22, GramWeight = 17.54m, SortOrder = 11 },
-            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000012"), Code = "BESLI",  Name = "Beşli Altın",    UnitType = UnitType.Piece,    Karat = 22, GramWeight = 35.08m, SortOrder = 12 },
-            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000013"), Code = "SILVER", Name = "Gümüş",          UnitType = UnitType.Gram,     GramWeight = 1m,                 SortOrder = 13 }
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000014"), Code = "SAR",    Name = "Suudi Riyali",   UnitType = UnitType.Currency, SortOrder = 5 },
+            // Gram altın
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000005"), Code = "GOLD22",    Name = "22 Ayar Altın",        UnitType = UnitType.Gram,  Karat = 22, GramWeight = 1.0000m,  SortOrder = 6 },
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000006"), Code = "GOLD24",    Name = "24 Ayar Altın",        UnitType = UnitType.Gram,  Karat = 24, GramWeight = 1.0000m,  SortOrder = 7 },
+            // Cumhuriyet serisi (adet) — mevcut ID'ler korunuyor
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000007"), Code = "C_CEYREK",  Name = "Cumhuriyet Çeyrek",    UnitType = UnitType.Piece, Karat = 22, GramWeight = 1.7540m,  SortOrder = 8 },
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000008"), Code = "C_YARIM",   Name = "Cumhuriyet Yarım",     UnitType = UnitType.Piece, Karat = 22, GramWeight = 3.5080m,  SortOrder = 9 },
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000009"), Code = "C_TAM",     Name = "Cumhuriyet Tam",       UnitType = UnitType.Piece, Karat = 22, GramWeight = 7.0160m,  SortOrder = 10 },
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000011"), Code = "C_GREMSE",  Name = "Cumhuriyet Gremse",    UnitType = UnitType.Piece, Karat = 22, GramWeight = 17.5400m, SortOrder = 11 },
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000012"), Code = "C_BESLI",   Name = "Cumhuriyet Beşli",     UnitType = UnitType.Piece, Karat = 22, GramWeight = 35.0800m, SortOrder = 12 },
+            // Reşat serisi (adet)
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000015"), Code = "R_CEYREK",  Name = "Reşat Çeyrek",         UnitType = UnitType.Piece, Karat = 22, GramWeight = 1.8040m,  SortOrder = 13 },
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000016"), Code = "R_YARIM",   Name = "Reşat Yarım",          UnitType = UnitType.Piece, Karat = 22, GramWeight = 3.6080m,  SortOrder = 14 },
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000010"), Code = "R_TAM",     Name = "Reşat Tam",            UnitType = UnitType.Piece, Karat = 22, GramWeight = 7.2160m,  SortOrder = 15 },
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000017"), Code = "R_GREMSE",  Name = "Reşat Gremse",         UnitType = UnitType.Piece, Karat = 22, GramWeight = 18.0400m, SortOrder = 16 },
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000018"), Code = "R_BESLI",   Name = "Reşat Beşli",          UnitType = UnitType.Piece, Karat = 22, GramWeight = 36.0800m, SortOrder = 17 },
+            // Gümüş
+            new AssetType { Id = Guid.Parse("00000000-0000-0000-0000-000000000013"), Code = "SILVER",    Name = "Gümüş",                UnitType = UnitType.Gram,  GramWeight = 1.0000m,              SortOrder = 18 }
         );
     }
 }

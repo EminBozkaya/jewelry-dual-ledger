@@ -32,15 +32,7 @@ public class TransactionService(AppDbContext db) : ITransactionService
     // ── Çekme ────────────────────────────────────────────────────────────────
     public async Task<TransactionResponse> WithdrawAsync(WithdrawalRequest request, Guid userId)
     {
-        // Bakiye kontrolü
-        var balance = await db.Balances.FirstOrDefaultAsync(b =>
-            b.CustomerId == request.CustomerId &&
-            b.AssetTypeId == request.AssetTypeId);
-
-        if (balance is null || balance.Amount < request.Amount)
-            throw new InvalidOperationException(
-                $"Yetersiz bakiye. Mevcut: {balance?.Amount ?? 0}, İstenen: {request.Amount}");
-
+        // Bakiye kontrolü yok — negatif bakiye (borç) izinlidir
         var transaction = new Transaction
         {
             CustomerId  = request.CustomerId,
@@ -209,6 +201,7 @@ public class TransactionService(AppDbContext db) : ITransactionService
             Id:                 t.Id,
             CustomerId:         t.CustomerId,
             CustomerFullName:   $"{t.Customer.FirstName} {t.Customer.LastName}",
+            CustomerType:       t.Customer.Type,
             Type:               t.Type,
             AssetTypeCode:      t.AssetType?.Code,
             AssetTypeName:      t.AssetType?.Name,

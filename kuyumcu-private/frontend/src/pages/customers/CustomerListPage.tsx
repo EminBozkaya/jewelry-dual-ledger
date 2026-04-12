@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Users } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
@@ -7,14 +7,17 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import { customerApi } from "@/api/customers";
-import type { Customer, CustomerCreateRequest } from "@/types";
+import { customerTypeApi } from "@/api/customer-types";
+import type { Customer, CustomerCreateRequest, CustomerTypeConfig } from "@/types";
 import { formatDateShort } from "@/lib/formatters";
 
 import { isValidTC } from "@/lib/validations";
 import { PhoneInput } from "@/components/shared/PhoneInput";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
+import { CustomerTypeFilter } from "@/components/shared/CustomerTypeFilter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +28,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 import type { ColumnDef } from "@tanstack/react-table";
@@ -34,6 +44,7 @@ import type { ExportColumn } from "@/components/shared/ExportButtons";
 const schema = z.object({
   firstName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
   lastName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
+  type: z.number().int().min(0, "Müşteri tipi seçiniz"),
   phone: z.string().superRefine((val, ctx) => {
     if (!val) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Telefon zorunludur" });
@@ -62,46 +73,6 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-// ── Tablo sütunları ───────────────────────────────────────────
-const columns: ColumnDef<Customer>[] = [
-  {
-    id: "avatar",
-    header: "",
-    enableSorting: false,
-    cell: ({ row }) => {
-      const c = row.original;
-      const initials = `${c.firstName[0]}${c.lastName[0]}`.toUpperCase();
-      return (
-        <Avatar className="h-9 w-9 hidden sm:flex">
-          {c.hasPhoto && (
-            <AvatarImage src={customerApi.getPhotoUrl(c.id)} />
-          )}
-          <AvatarFallback className="text-xs bg-primary/10">{initials}</AvatarFallback>
-        </Avatar>
-      );
-    },
-  },
-  {
-    accessorKey: "fullName",
-    header: "Ad Soyad",
-    cell: ({ getValue }) => (
-      <span className="font-medium">{getValue<string>()}</span>
-    ),
-  },
-  {
-    accessorKey: "phone",
-    header: "Telefon",
-    enableSorting: false,
-  },
-  {
-    accessorKey: "createdAt",
-    header: "Kayıt Tarihi",
-    cell: ({ getValue }) => (
-      <span className="hidden md:block">{formatDateShort(getValue<string>())}</span>
-    ),
-  },
-];
-
 const exportColumns: ExportColumn[] = [
   { header: "Ad Soyad", accessor: "fullName" },
   { header: "Telefon", accessor: "phone" },
@@ -112,9 +83,87 @@ const exportColumns: ExportColumn[] = [
 export function CustomerListPage() {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerTypes, setCustomerTypes] = useState<CustomerTypeConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [selectedCustomerTypes, setSelectedCustomerTypes] = useState<number[]>([]);
+
+  const filteredCustomers = useMemo(() => {
+    if (selectedCustomerTypes.length === 0) return customers;
+    return customers.filter((c) => selectedCustomerTypes.includes(Number(c.type)));
+  }, [customers, selectedCustomerTypes]);
+
+  // Tip bilgisine göre badge render yardımcısı
+  const resolveType = (value: number | string) => {
+    const v = Number(value);
+    return customerTypes.find((t) => t.value === v);
+  };
+
+  // Dinamik sütunlar (customerTypes yüklenince badge güncellensin diye içeride)
+  const columns: ColumnDef<Customer>[] = [
+    {
+      id: "avatar",
+      header: "",
+      enableSorting: false,
+      cell: ({ row }) => {
+        const c = row.original;
+        const initials = `${c.firstName[0]}${c.lastName[0]}`.toUpperCase();
+        return (
+          <Avatar className="h-10 w-10 hidden sm:flex border border-black/[0.05] dark:border-white/[0.05] shadow-sm">
+            {c.hasPhoto && (
+              <AvatarImage
+                src={customerApi.getPhotoUrl(c.id)}
+                className="object-cover"
+                alt={c.fullName}
+              />
+            )}
+            <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 text-slate-600 dark:text-slate-400">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+        );
+      },
+    },
+    {
+      accessorKey: "fullName",
+      header: "Ad Soyad",
+      cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
+    },
+    {
+      accessorKey: "type",
+      header: "Müşteri Tipi",
+      cell: ({ getValue }) => {
+        const cfg = resolveType(getValue<number>());
+        if (!cfg) return <span className="text-muted-foreground text-sm">—</span>;
+        return (
+          <span
+            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+            style={{
+              backgroundColor: cfg.colorHex + "22",
+              color: cfg.colorHex,
+              border: `1px solid ${cfg.colorHex}44`,
+            }}
+          >
+            {cfg.name}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "phone",
+      header: "Telefon",
+      enableSorting: false,
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Kayıt Tarihi",
+      cell: ({ getValue }) => (
+        <span className="hidden md:block">{formatDateShort(getValue<string>())}</span>
+      ),
+    },
+  ];
 
   const {
     register,
@@ -127,10 +176,14 @@ export function CustomerListPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const data = await customerApi.getAll();
+      const [data, types] = await Promise.all([
+        customerApi.getAll(),
+        customerTypeApi.getAll(),
+      ]);
       setCustomers(data);
+      setCustomerTypes(types);
     } catch {
-      toast.error("Müşteriler yüklenemedi");
+      toast.error("Veriler yüklenemedi");
     } finally {
       setLoading(false);
     }
@@ -147,6 +200,7 @@ export function CustomerListPage() {
         firstName: values.firstName,
         lastName: values.lastName,
         phone: values.phone,
+        type: values.type,
         nationalId: values.nationalId || undefined,
         email: values.email || undefined,
         address: values.address || undefined,
@@ -177,9 +231,21 @@ export function CustomerListPage() {
         }
       />
 
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2">
+        <CustomerTypeFilter
+          types={customerTypes}
+          selectedTypes={selectedCustomerTypes}
+          onChange={setSelectedCustomerTypes}
+          className="w-full sm:w-auto"
+        />
+        <div className="text-xs text-muted-foreground font-medium bg-black/[0.03] dark:bg-white/[0.03] px-3 py-1.5 rounded-lg border border-black/[0.05] dark:border-white/[0.05]">
+          Toplam <span className="text-foreground font-bold">{filteredCustomers.length}</span> müşteri listeleniyor
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
-        data={customers}
+        data={filteredCustomers}
         searchPlaceholder="Müşteri adı, telefon veya TC ile ara..."
         isLoading={loading}
         emptyMessage="Henüz müşteri eklenmemiş"
@@ -214,6 +280,33 @@ export function CustomerListPage() {
                   <p className="text-xs text-destructive">{errors.lastName.message}</p>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="type">Müşteri Tipi *</Label>
+              <Controller
+                control={control}
+                name="type"
+                defaultValue={customerTypes[0]?.value ?? 0}
+                render={({ field }) => (
+                  <Select
+                    value={String(field.value)}
+                    onValueChange={(v) => field.onChange(Number(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tip seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customerTypes.filter((t) => t.isActive).map((t) => (
+                        <SelectItem key={t.id} value={String(t.value)}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.type && <p className="text-xs text-destructive">{errors.type.message}</p>}
             </div>
 
             <div className="space-y-1.5">

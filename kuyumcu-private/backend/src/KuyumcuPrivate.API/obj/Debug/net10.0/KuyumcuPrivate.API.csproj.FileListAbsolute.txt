@@ -16,7 +16,6 @@ C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\Kuyumc
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\KuyumcuPrivate.API.dll
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\KuyumcuPrivate.API.pdb
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\Humanizer.dll
-C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\Microsoft.AspNetCore.OpenApi.dll
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\Microsoft.Build.Framework.dll
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\Microsoft.CodeAnalysis.dll
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\Microsoft.CodeAnalysis.CSharp.dll
@@ -139,3 +138,4 @@ C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\Kuyumc
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\Microsoft.IdentityModel.Tokens.dll
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.API\bin\Debug\net10.0\appsettings.Local.json

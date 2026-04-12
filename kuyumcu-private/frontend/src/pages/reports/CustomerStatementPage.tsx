@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 import { format, startOfMonth } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import { AmountDisplay } from "@/components/shared/AmountDisplay";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { CustomerType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -112,6 +113,8 @@ export function CustomerStatementPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerOpen, setCustomerOpen] = useState(false);
 
+  const filteredCustomers = customers;
+
   const today = new Date();
   const [fromDate, setFromDate] = useState<Date>(startOfMonth(today));
   const [toDate, setToDate] = useState<Date>(today);
@@ -141,6 +144,34 @@ export function CustomerStatementPage() {
       .finally(() => setLoading(false));
   };
 
+  const statementExportSummary = useMemo(() => {
+    if (!statement) return undefined;
+    return [
+      {
+        title: "Müşteri Bilgileri",
+        items: [
+          { label: "Müşteri", value: statement.customer.fullName },
+          { label: "Telefon", value: statement.customer.phone },
+          { label: "Tarih Aralığı", value: `${format(new Date(statement.period.from), "dd.MM.yyyy")} - ${format(new Date(statement.period.to), "dd.MM.yyyy")}` }
+        ]
+      },
+      {
+        title: "Açılış Bakiyeleri",
+        items: statement.openingBalances.filter(b => b.amount !== 0).map(b => ({
+          label: b.assetTypeName,
+          value: `${b.amount.toLocaleString("tr-TR")} (${b.amount >= 0 ? "Alacak" : "Borç"})`
+        }))
+      },
+      {
+        title: "Kapanış Bakiyeleri",
+        items: statement.closingBalances.filter(b => b.amount !== 0).map(b => ({
+          label: b.assetTypeName,
+          value: `${b.amount.toLocaleString("tr-TR")} (${b.amount >= 0 ? "Alacak" : "Borç"})`
+        }))
+      }
+    ];
+  }, [statement]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -161,13 +192,13 @@ export function CustomerStatementPage() {
                     {selectedCustomer ? selectedCustomer.fullName : "Müşteri seçin..."}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
+                <PopoverContent className="w-96 p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Müşteri ara..." />
                     <CommandList>
                       <CommandEmpty>Müşteri bulunamadı</CommandEmpty>
                       <CommandGroup>
-                        {customers.map((c) => (
+                        {filteredCustomers.map((c) => (
                           <CommandItem
                             key={c.id}
                             value={c.fullName}
@@ -285,7 +316,7 @@ export function CustomerStatementPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">
-                  Açılış Bakiyeleri ({format(new Date(statement.period.from), "dd.MM.yyyy")})
+                  Devreden Bakiyeler ({format(new Date(statement.period.from), "dd.MM.yyyy")})
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -332,11 +363,12 @@ export function CustomerStatementPage() {
               searchPlaceholder="İşlem ara..."
               emptyMessage="Bu dönemde işlem bulunmuyor"
               exportFilename={`ekstre-${statement.customer.fullName.replace(/\s+/g, "-").toLowerCase()}-${format(new Date(statement.period.from), "yyyy-MM")}`}
+              exportSummary={statementExportSummary}
               exportColumns={[
-                { accessor: "createdAt", header: "Tarih" },
-                { accessor: "type", header: "Tür" },
+                { accessor: "createdAt", header: "Tarih", formatter: (val) => formatDate(val as string) },
+                { accessor: "type", header: "Tür", formatter: (val) => formatTransactionType(val as string) },
                 { accessor: "assetTypeName", header: "Varlık" },
-                { accessor: "amount", header: "Miktar" },
+                { accessor: "amount", header: "Miktar", formatter: (val) => (val as number)?.toLocaleString("tr-TR") ?? "0" },
                 { accessor: "description", header: "Açıklama" },
               ]}
             />

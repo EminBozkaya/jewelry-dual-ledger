@@ -61,3 +61,16 @@ export function formatTransactionType(type: string): string {
   };
   return map[type] ?? type;
 }
+
+/** Müşteri tipi Türkçe karşılık */
+export function formatCustomerType(type: number | string): string {
+  const map: Record<string | number, string> = {
+    0: "Özel Müşteri",
+    1: "Kuyumcu",
+    2: "Tedarikçi",
+    "Standard": "Özel Müşteri",
+    "Jeweler": "Kuyumcu",
+    "Supplier": "Tedarikçi"
+  };
+  return map[type] ?? "Bilinmeyen";
+}

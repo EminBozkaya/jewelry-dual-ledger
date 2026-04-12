@@ -5,11 +5,12 @@ import {
   Activity,
   UserCheck,
   CalendarDays,
-  Plus,
-  Search,
-  BarChart3,
   TrendingUp,
   ArrowRight,
+  Banknote,
+  Coins,
+  Scale,
+  LayoutDashboard,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -89,6 +90,114 @@ function SummaryCard({
   );
 }
 
+// ── Varlık grubu ─────────────────────────────────────────────
+interface AssetGroup {
+  label: string;
+  icon: React.ElementType;
+  accentColor: string;
+  items: PortfolioAsset[];
+}
+
+function groupPortfolioAssets(assets: PortfolioAsset[]): AssetGroup[] {
+  const doviz = assets.filter((a) => a.unitType === "Currency");
+  const altin = assets.filter((a) => a.unitType === "Piece" || (a.unitType === "Gram" && a.assetTypeCode !== "SILVER"));
+  const diger = assets.filter((a) => a.unitType === "Gram" && a.assetTypeCode === "SILVER");
+
+  // If nothing in diger, put all remaining Gram types that aren't in altin
+  const groups: AssetGroup[] = [];
+
+  if (doviz.length > 0) {
+    groups.push({ label: "Döviz", icon: Banknote, accentColor: "#4ade80", items: doviz });
+  }
+  if (altin.length > 0) {
+    groups.push({ label: "Altın", icon: Coins, accentColor: "var(--color-gold)", items: altin });
+  }
+  if (diger.length > 0) {
+    groups.push({ label: "Diğer", icon: Scale, accentColor: "#60a5fa", items: diger });
+  }
+
+  return groups;
+}
+
+function PortfolioRow({ asset, onClick }: { asset: PortfolioAsset; onClick: () => void }) {
+
+  return (
+    <button
+      onClick={onClick}
+      className="group/row w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/60 dark:hover:bg-white/[0.04] cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/5"
+    >
+      {/* Asset code badge */}
+      <div className="flex-shrink-0 w-16 text-left">
+        <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold tracking-wider bg-black/[0.04] dark:bg-white/[0.06] text-foreground/80 border border-black/[0.03] dark:border-white/[0.04]">
+          {asset.assetTypeCode}
+        </span>
+      </div>
+
+      {/* Asset name */}
+      <span className="flex-1 text-sm font-medium text-foreground/80 text-left truncate group-hover/row:text-foreground transition-colors">
+        {asset.assetTypeName}
+      </span>
+
+      {/* Customer count */}
+      <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground/70 flex-shrink-0">
+        <Users className="h-3 w-3" />
+        {asset.customerCount}
+      </span>
+
+      {/* Net amount */}
+      <div className="flex-shrink-0 text-right min-w-[120px]">
+        <AmountDisplay
+          value={asset.netAmount}
+          unitType={asset.unitType}
+          size="sm"
+          invertPolarity={true}
+          className="font-semibold tabular-nums"
+        />
+      </div>
+
+      {/* Arrow indicator */}
+      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0 opacity-0 group-hover/row:opacity-100 transition-all transform group-hover/row:translate-x-0.5" />
+    </button>
+  );
+}
+
+function PortfolioGroupSection({ group }: { group: AssetGroup }) {
+  const navigate = useNavigate();
+  const Icon = group.icon;
+
+  return (
+    <div className="space-y-1">
+      {/* Group header */}
+      <div className="flex items-center gap-2.5 px-4 pt-3 pb-1">
+        <div
+          className="flex h-6 w-6 items-center justify-center rounded-md"
+          style={{
+            background: `color-mix(in srgb, ${group.accentColor} 12%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${group.accentColor} 20%, transparent)`,
+          }}
+        >
+          <Icon className="h-3.5 w-3.5" style={{ color: group.accentColor }} />
+        </div>
+        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
+          {group.label}
+        </span>
+        <div className="flex-1 h-px bg-gradient-to-r from-black/5 dark:from-white/5 to-transparent" />
+      </div>
+
+      {/* Asset rows */}
+      <div className="space-y-0.5 px-1">
+        {group.items.map((asset) => (
+          <PortfolioRow
+            key={asset.assetTypeId}
+            asset={asset}
+            onClick={() => navigate("/reports/portfolio")}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Son işlemler sütunları ────────────────────────────────────
 const recentColumns: ColumnDef<Transaction>[] = [
   {
@@ -138,31 +247,51 @@ export function DashboardPage() {
   const [portfolioLoading, setPortfolioLoading] = useState(true);
 
   useEffect(() => {
+    // Summary endpoint'i müşteri tipini desteklemiyor olabilir ama biz son işlemleri frontend'de filtreleyebiliriz.
+    // Ancak portföyü backend'den filtreleyerek çekmek daha doğru.
+    setLoading(true);
     dashboardApi
       .getSummary()
       .then(setSummary)
       .catch(() => toast.error("Dashboard verileri yüklenemedi"))
       .finally(() => setLoading(false));
+  }, []);
 
+  useEffect(() => {
+    setPortfolioLoading(true);
     reportApi
       .getPortfolio()
-      .then((data) => setPortfolio(data.slice(0, 5))) // En çok hareket gören 5 varlık
+      .then(setPortfolio)
       .catch(() => {})
       .finally(() => setPortfolioLoading(false));
   }, []);
 
-  // Bugün toplam işlem adedi (son 7 gün placeholder)
+  const filteredRecentTransactions = summary?.recentTransactions ?? [];
+
   const today = new Date();
+  const groups = groupPortfolioAssets(portfolio);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Gösterge Paneli"
-        description="Genel bakış — müşteri ve işlem özeti"
+        title="Mağaza Portföyü"
+        description="Genel bakış, varlık durumu ve son işlemler"
       />
 
-      {/* Özet Kartlar */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* ── Genel Bakış ── */}
+      <div>
+        <div className="flex items-center gap-3 mb-4 px-1">
+          <div className="p-2 rounded-lg bg-[--color-gold-glow] border border-[--color-gold]/20">
+            <LayoutDashboard className="h-4 w-4" style={{ color: "var(--color-gold)" }} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-foreground mb-0.5">Genel Bakış</h2>
+            <p className="text-sm text-muted-foreground">Mağazanızın anlık özet istatistikleri</p>
+          </div>
+        </div>
+
+        {/* Özet Kartlar */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           title="Toplam Müşteri"
           value={summary?.totalCustomers ?? 0}
@@ -192,83 +321,58 @@ export function DashboardPage() {
           loading={false}
         />
       </div>
-
-      {/* Hızlı Erişim */}
-      <div className="flex flex-col gap-3 sm:flex-row flex-wrap items-center bg-card/20 p-2 rounded-2xl border border-white/5 backdrop-blur-md">
-        <Button
-          className="gap-2 min-h-11 text-sm rounded-xl font-medium shadow-md transition-all hover:scale-[1.02] cursor-pointer"
-          style={{ background: "linear-gradient(135deg, #f5d16e, var(--color-gold), #b8860b)", color: "#0c0d12", border: "none" }}
-          onClick={() => navigate("/customers")}
-        >
-          <Plus className="h-4 w-4" />
-          Yeni Müşteri Ekle
-        </Button>
-        <Button
-          variant="outline"
-          className="gap-2 min-h-11 text-sm rounded-xl font-medium border-black/10 dark:border-white/10 bg-white dark:bg-card/40 hover:bg-black/5 dark:hover:bg-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer text-foreground"
-          onClick={() => navigate("/customers")}
-        >
-          <Search className="h-4 w-4 text-muted-foreground" />
-          Müşterilerde Ara
-        </Button>
-        <Button
-          variant="outline"
-          className="gap-2 min-h-11 text-sm rounded-xl font-medium border-black/10 dark:border-white/10 bg-white dark:bg-card/40 hover:bg-black/5 dark:hover:bg-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer text-foreground"
-          onClick={() => navigate("/reports/daily")}
-        >
-          <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          Günlük Rapor
-        </Button>
       </div>
 
-      {/* Mini Portföy — en fazla bakiyesi olan 5 varlık */}
-      {(portfolioLoading || portfolio.length > 0) && (
-        <div className="relative mt-8">
-          <div className="absolute inset-0 bg-gradient-to-b from-[--color-gold-glow] to-transparent opacity-40 dark:opacity-20 -z-10 rounded-3xl blur-xl" />
-          <div className="flex items-center gap-3 mb-4 px-1">
+      {/* ── Varlık Durumu — Gruplu kompakt tablo ── */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-[--color-gold-glow] to-transparent opacity-30 dark:opacity-15 -z-10 rounded-3xl blur-2xl" />
+        
+        <div className="flex items-center justify-between gap-3 mb-3 px-1">
+          <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[--color-gold-glow] border border-[--color-gold]/20">
               <TrendingUp className="h-4 w-4" style={{ color: "var(--color-gold)" }} />
             </div>
             <div>
               <h2 className="text-lg font-bold tracking-tight text-foreground mb-0.5">Varlık Durumu</h2>
-              <p className="text-sm text-muted-foreground">Portföyünüzün güncel özeti</p>
+              <p className="text-sm text-muted-foreground">Mağaza bakiye özeti</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {portfolioLoading
-              ? [...Array(5)].map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl bg-black/5 dark:bg-white/5" />)
-              : portfolio.map((asset) => (
-                  <Card
-                    key={asset.assetTypeId}
-                    className="cursor-pointer transition-all duration-300 hover:-translate-y-1 group bg-card/60 dark:bg-card/40 backdrop-blur-xl border-black/5 dark:border-white/5"
-                    style={{
-                      borderLeft: `4px solid ${asset.netAmount >= 0 ? "var(--color-alacak)" : "var(--color-borc)"}`,
-                      boxShadow: `0 4px 6px -1px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 20px -5px color-mix(in srgb, ${asset.netAmount >= 0 ? "var(--color-alacak)" : "var(--color-borc)"} 25%, transparent)`
-                    }}
-                    onClick={() => navigate("/reports/portfolio")}
-                  >
-                    <CardHeader className="pb-1 pt-4 px-4">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">{asset.assetTypeName}</CardTitle>
-                        <div className="h-6 w-6 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
-                          <ArrowRight className="h-3 w-3 text-foreground" />
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="px-4 pb-4">
-                      <div className="mt-1">
-                        <AmountDisplay value={asset.netAmount} unitType={asset.unitType} size="md" />
-                      </div>
-                      <p className="text-sm text-muted-foreground/80 mt-2 font-medium">{asset.customerCount} aktif müşteri</p>
-                    </CardContent>
-                  </Card>
-                ))}
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => navigate("/reports/portfolio")}
+          >
+            Detaylı Rapor
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
         </div>
-      )}
+
+        <div className="bg-card/50 dark:bg-card/30 backdrop-blur-xl rounded-2xl border border-black/5 dark:border-white/[0.04] shadow-xl shadow-black/5 overflow-hidden pb-2">
+          {portfolioLoading ? (
+            <div className="p-5 space-y-3">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-xl bg-black/[0.03] dark:bg-white/[0.03]" />
+              ))}
+            </div>
+          ) : groups.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-sm text-muted-foreground">Henüz bakiye kaydı bulunmuyor</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
+              {groups.map((group) => (
+                <PortfolioGroupSection key={group.label} group={group} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+
 
       {/* Son İşlemler */}
-      <div className="mt-8 relative">
+      <div className="mt-2 relative">
         <div className="flex items-center gap-3 mb-4 px-1">
           <div className="p-2 rounded-lg bg-[--color-gold-glow] border border-[--color-gold]/20">
             <Activity className="h-4 w-4" style={{ color: "var(--color-gold)" }} />
@@ -281,7 +385,7 @@ export function DashboardPage() {
         <div className="bg-card/50 backdrop-blur-md rounded-2xl border border-black/5 dark:border-white/5 shadow-xl shadow-black/5 overflow-hidden">
           <DataTable
             columns={recentColumns}
-            data={summary?.recentTransactions ?? []}
+            data={filteredRecentTransactions}
             isLoading={loading}
             searchPlaceholder="İşlemlerde ara..."
             emptyMessage="Henüz işlem yapılmamış"

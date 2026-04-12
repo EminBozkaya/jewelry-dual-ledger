@@ -12,6 +12,8 @@ import { PortfolioReportPage } from "@/pages/reports/PortfolioReportPage";
 import { DailyReportPage } from "@/pages/reports/DailyReportPage";
 import { CustomerStatementPage } from "@/pages/reports/CustomerStatementPage";
 import { UserManagementPage } from "@/pages/admin/UserManagementPage";
+import { AssetTypeManagementPage } from "@/pages/admin/AssetTypeManagementPage";
+import { CustomerTypeManagementPage } from "@/pages/admin/CustomerTypeManagementPage";
 import { useAuth } from "@/hooks/useAuth";
 import type { ReactNode } from "react";
 
@@ -41,6 +43,22 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <UserManagementPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/asset-types"
+          element={
+            <AdminRoute>
+              <AssetTypeManagementPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/customer-types"
+          element={
+            <AdminRoute>
+              <CustomerTypeManagementPage />
             </AdminRoute>
           }
         />

@@ -12,12 +12,19 @@ namespace KuyumcuPrivate.Infrastructure.Services;
 public class ReportService(AppDbContext db) : IReportService
 {
     // ── Genel Portföy: varlık tipine göre bakiye özeti ───────────────────────
-    public async Task<IEnumerable<PortfolioAssetDto>> GetPortfolioAsync()
+    public async Task<IEnumerable<PortfolioAssetDto>> GetPortfolioAsync(IEnumerable<CustomerType>? types = null)
     {
-        var balances = await db.Balances
+        var query = db.Balances
             .Include(b => b.AssetType)
-            .Where(b => b.Amount != 0)
-            .ToListAsync();
+            .Include(b => b.Customer)
+            .Where(b => b.Amount != 0);
+
+        if (types != null && types.Any())
+        {
+            query = query.Where(b => types.Contains(b.Customer.Type));
+        }
+
+        var balances = await query.ToListAsync();
 
         var result = balances
             .GroupBy(b => b.AssetType)
@@ -43,10 +50,10 @@ public class ReportService(AppDbContext db) : IReportService
     }
 
     // ── Günlük Rapor ─────────────────────────────────────────────────────────
-    public async Task<DailyReportDto> GetDailyReportAsync(DateOnly date)
+    public async Task<DailyReportDto> GetDailyReportAsync(DateOnly fromDate, DateOnly toDate)
     {
-        var from = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var to   = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        var from = fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var to   = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
         var transactions = await db.Transactions
             .Where(t => t.CreatedAt >= from && t.CreatedAt <= to && !t.IsCancelled)
@@ -89,7 +96,7 @@ public class ReportService(AppDbContext db) : IReportService
         var mapped = transactions.Select(MapTransaction).ToList();
 
         return new DailyReportDto(
-            date.ToString("yyyy-MM-dd"),
+            fromDate == toDate ? fromDate.ToString("yyyy-MM-dd") : $"{fromDate:yyyy-MM-dd} / {toDate:yyyy-MM-dd}",
             transactions.Count,
             deposits,
             withdrawals,
@@ -168,7 +175,7 @@ public class ReportService(AppDbContext db) : IReportService
             customer.Id, customer.FirstName, customer.LastName,
             $"{customer.FirstName} {customer.LastName}",
             customer.Phone, customer.Address, customer.Email,
-            customer.NationalId, customer.Notes,
+            customer.NationalId, customer.Type, customer.Notes,
             customer.Photo is not null && customer.Photo.Length > 0,
             customer.CreatedAt);
 
@@ -212,6 +219,7 @@ public class ReportService(AppDbContext db) : IReportService
         return new TransactionResponse(
             t.Id, t.CustomerId,
             $"{t.Customer.FirstName} {t.Customer.LastName}",
+            t.Customer.Type,
             t.Type, t.AssetType?.Code, t.AssetType?.Name,
             t.Amount, t.Description, t.CreatedByUser.FullName,
             t.CreatedAt, t.IsCancelled, t.CancelReason, conv);

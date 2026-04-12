@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace KuyumcuPrivate.Domain.Enums;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum UnitType
 {
     Currency,  // Para birimi (TL, USD, EUR, GBP)

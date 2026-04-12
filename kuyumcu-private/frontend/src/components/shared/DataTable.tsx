@@ -30,7 +30,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchInput } from "./SearchInput";
 import { EmptyState } from "./EmptyState";
-import { ExportButtons, type ExportColumn } from "./ExportButtons";
+import { ExportButtons, type ExportColumn, type ExportSummarySection } from "./ExportButtons";
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/lib/constants";
 
 interface DataTableProps<TData> {
@@ -43,19 +43,24 @@ interface DataTableProps<TData> {
   emptyMessage?: string;
   exportFilename?: string;
   exportColumns?: ExportColumn[];
+  exportSummary?: ExportSummarySection[];
   getRowClassName?: (row: Row<TData>) => string;
+  headerActions?: React.ReactNode;
 }
 
 export function DataTable<TData>({
   columns,
   data,
   searchPlaceholder = "Ara...",
+  searchableColumns,
   onRowClick,
   isLoading = false,
   emptyMessage,
   exportFilename,
   exportColumns,
+  exportSummary,
   getRowClassName,
+  headerActions,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -69,6 +74,25 @@ export function DataTable<TData>({
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, _columnId, filterValue) => {
+      if (!filterValue) return true;
+      const term = String(filterValue).toLocaleLowerCase("tr-TR");
+      const cols = searchableColumns?.length 
+        ? searchableColumns 
+        : row.getAllCells().map(c => c.column.id);
+
+      for (const col of cols) {
+        try {
+          const val = row.getValue(col);
+          if (val != null && String(val).toLocaleLowerCase("tr-TR").includes(term)) {
+            return true;
+          }
+        } catch {
+          // ignore accessor errors
+        }
+      }
+      return false;
+    },
     state: { sorting, globalFilter },
     initialState: { pagination: { pageSize: DEFAULT_PAGE_SIZE } },
   });
@@ -82,17 +106,21 @@ export function DataTable<TData>({
     <div className="space-y-4">
       {/* Üst bar: arama + export */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <SearchInput
-          value={globalFilter}
-          onChange={setGlobalFilter}
-          placeholder={searchPlaceholder}
-          className="w-full sm:max-w-sm"
-        />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:max-w-3xl">
+          <SearchInput
+            value={globalFilter}
+            onChange={setGlobalFilter}
+            placeholder={searchPlaceholder}
+            className="w-full sm:max-w-xs"
+          />
+          {headerActions}
+        </div>
         {exportFilename && exportColumns && (
           <ExportButtons
             data={filteredRows.map((r) => r.original as Record<string, unknown>)}
             columns={exportColumns}
             filename={exportFilename}
+            exportSummary={exportSummary}
           />
         )}
       </div>

@@ -32,6 +32,7 @@ public class CustomerService(AppDbContext db) : ICustomerService
             Address    = request.Address?.Trim(),
             Email      = request.Email?.Trim(),
             NationalId = request.NationalId?.Trim(),
+            Type       = request.Type,
             Notes      = request.Notes?.Trim()
         };
 
@@ -51,6 +52,7 @@ public class CustomerService(AppDbContext db) : ICustomerService
         customer.Address    = request.Address?.Trim();
         customer.Email      = request.Email?.Trim();
         customer.NationalId = request.NationalId?.Trim();
+        customer.Type       = request.Type;
         customer.Notes      = request.Notes?.Trim();
 
         await db.SaveChangesAsync();
@@ -67,20 +69,22 @@ public class CustomerService(AppDbContext db) : ICustomerService
         return true;
     }
 
-    public async Task<bool> UploadPhotoAsync(Guid id, byte[] photoBytes)
+    public async Task<bool> UploadPhotoAsync(Guid id, byte[] photoBytes, string contentType)
     {
         var customer = await db.Customers.FindAsync(id);
         if (customer is null) return false;
 
         customer.Photo = photoBytes;
+        customer.PhotoContentType = contentType;
         await db.SaveChangesAsync();
         return true;
     }
 
-    public async Task<byte[]?> GetPhotoAsync(Guid id)
+    public async Task<CustomerPhoto?> GetPhotoAsync(Guid id)
     {
         var customer = await db.Customers.FindAsync(id);
-        return customer?.Photo;
+        if (customer?.Photo == null) return null;
+        return new CustomerPhoto(customer.Photo, customer.PhotoContentType ?? "image/jpeg");
     }
 
     private static CustomerResponse ToResponse(Customer c) => new(
@@ -92,6 +96,7 @@ public class CustomerService(AppDbContext db) : ICustomerService
         Address:     c.Address,
         Email:       c.Email,
         NationalId:  c.NationalId,
+        Type:        c.Type,
         Notes:       c.Notes,
         HasPhoto:    c.Photo is not null,
         CreatedAt:   c.CreatedAt

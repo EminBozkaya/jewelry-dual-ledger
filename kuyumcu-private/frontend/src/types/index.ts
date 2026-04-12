@@ -20,6 +20,8 @@ export interface AuthUser {
 }
 
 // ── Customer ──────────────────────────────────────────────────
+export type CustomerType = number; // Customer.type int değeri — CustomerTypeConfig.value'ya karşılık gelir
+
 export interface Customer {
   id: string;
   firstName: string;
@@ -29,6 +31,7 @@ export interface Customer {
   address?: string;
   email?: string;
   nationalId?: string;
+  type: CustomerType;
   notes?: string;
   hasPhoto: boolean;
   createdAt: string;
@@ -41,6 +44,7 @@ export interface CustomerCreateRequest {
   address?: string;
   email?: string;
   nationalId?: string;
+  type: CustomerType;
   notes?: string;
 }
 
@@ -90,6 +94,7 @@ export interface Transaction {
   id: string;
   customerId: string;
   customerFullName: string;
+  customerType: CustomerType;
   type: TransactionType;
   assetTypeCode?: string;
   assetTypeName?: string;
@@ -136,6 +141,16 @@ export interface PaginationState {
 export interface SortingState {
   id: string;
   desc: boolean;
+}
+
+// ── CustomerTypeConfig ────────────────────────────────────────
+export interface CustomerTypeConfig {
+  id: string;
+  value: number;       // Customer.type int karşılığı (0, 1, 2, …)
+  name: string;        // "Özel Müşteri"
+  colorHex: string;    // "#3b82f6"
+  isActive: boolean;
+  sortOrder: number;
 }
 
 // ── User Management ───────────────────────────────────────────

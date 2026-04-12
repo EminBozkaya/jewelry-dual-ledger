@@ -1,3 +1,5 @@
+C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\obj\Debug\net10.0\KuyumcuPrivate.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\obj\Debug\net10.0\KuyumcuPrivate.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\bin\Debug\net10.0\KuyumcuPrivate.Infrastructure.deps.json
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\bin\Debug\net10.0\KuyumcuPrivate.Infrastructure.runtimeconfig.json
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\bin\Debug\net10.0\KuyumcuPrivate.Infrastructure.dll
@@ -6,8 +8,6 @@ C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\Kuyumc
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\bin\Debug\net10.0\KuyumcuPrivate.Domain.dll
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\bin\Debug\net10.0\KuyumcuPrivate.Application.pdb
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\bin\Debug\net10.0\KuyumcuPrivate.Domain.pdb
-C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\obj\Debug\net10.0\KuyumcuPrivate.Infrastructure.csproj.AssemblyReference.cache
-C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\obj\Debug\net10.0\KuyumcuPrivate.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\obj\Debug\net10.0\KuyumcuPrivate.Infrastructure.AssemblyInfoInputs.cache
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\obj\Debug\net10.0\KuyumcuPrivate.Infrastructure.AssemblyInfo.cs
 C:\Users\MSI\source\repos\jewelry-dual-ledger\kuyumcu-private\backend\src\KuyumcuPrivate.Infrastructure\obj\Debug\net10.0\KuyumcuPrivate.Infrastructure.csproj.CoreCompileInputs.cache

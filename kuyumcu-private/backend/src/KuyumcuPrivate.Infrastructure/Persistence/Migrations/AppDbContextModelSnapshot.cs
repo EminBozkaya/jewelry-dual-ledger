@@ -99,100 +99,153 @@ namespace KuyumcuPrivate.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            Id = new Guid("00000000-0000-0000-0000-000000000014"),
+                            Code = "SAR",
+                            IsActive = true,
+                            Name = "Suudi Riyali",
+                            SortOrder = 5,
+                            UnitType = "Currency"
+                        },
+                        new
+                        {
                             Id = new Guid("00000000-0000-0000-0000-000000000005"),
                             Code = "GOLD22",
-                            GramWeight = 1m,
+                            GramWeight = 1.0000m,
                             IsActive = true,
                             Karat = 22,
                             Name = "22 Ayar Altın",
-                            SortOrder = 5,
+                            SortOrder = 6,
                             UnitType = "Gram"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000006"),
                             Code = "GOLD24",
-                            GramWeight = 1m,
+                            GramWeight = 1.0000m,
                             IsActive = true,
                             Karat = 24,
                             Name = "24 Ayar Altın",
-                            SortOrder = 6,
+                            SortOrder = 7,
                             UnitType = "Gram"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000007"),
-                            Code = "CEYREK",
-                            GramWeight = 1.75m,
+                            Code = "C_CEYREK",
+                            GramWeight = 1.7540m,
                             IsActive = true,
                             Karat = 22,
-                            Name = "Çeyrek Altın",
-                            SortOrder = 7,
-                            UnitType = "Piece"
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0000-000000000008"),
-                            Code = "YARIM",
-                            GramWeight = 3.50m,
-                            IsActive = true,
-                            Karat = 22,
-                            Name = "Yarım Altın",
+                            Name = "Cumhuriyet Çeyrek",
                             SortOrder = 8,
                             UnitType = "Piece"
                         },
                         new
                         {
-                            Id = new Guid("00000000-0000-0000-0000-000000000009"),
-                            Code = "LIRA",
-                            GramWeight = 7.02m,
+                            Id = new Guid("00000000-0000-0000-0000-000000000008"),
+                            Code = "C_YARIM",
+                            GramWeight = 3.5080m,
                             IsActive = true,
                             Karat = 22,
-                            Name = "Tam Altın",
+                            Name = "Cumhuriyet Yarım",
                             SortOrder = 9,
                             UnitType = "Piece"
                         },
                         new
                         {
-                            Id = new Guid("00000000-0000-0000-0000-000000000010"),
-                            Code = "ATA",
-                            GramWeight = 7.21m,
+                            Id = new Guid("00000000-0000-0000-0000-000000000009"),
+                            Code = "C_TAM",
+                            GramWeight = 7.0160m,
                             IsActive = true,
                             Karat = 22,
-                            Name = "Ata Altın",
+                            Name = "Cumhuriyet Tam",
                             SortOrder = 10,
                             UnitType = "Piece"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000011"),
-                            Code = "GREMSE",
-                            GramWeight = 17.54m,
+                            Code = "C_GREMSE",
+                            GramWeight = 17.5400m,
                             IsActive = true,
                             Karat = 22,
-                            Name = "Gremse Altın",
+                            Name = "Cumhuriyet Gremse",
                             SortOrder = 11,
                             UnitType = "Piece"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000012"),
-                            Code = "BESLI",
-                            GramWeight = 35.08m,
+                            Code = "C_BESLI",
+                            GramWeight = 35.0800m,
                             IsActive = true,
                             Karat = 22,
-                            Name = "Beşli Altın",
+                            Name = "Cumhuriyet Beşli",
                             SortOrder = 12,
+                            UnitType = "Piece"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000015"),
+                            Code = "R_CEYREK",
+                            GramWeight = 1.8040m,
+                            IsActive = true,
+                            Karat = 22,
+                            Name = "Reşat Çeyrek",
+                            SortOrder = 13,
+                            UnitType = "Piece"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000016"),
+                            Code = "R_YARIM",
+                            GramWeight = 3.6080m,
+                            IsActive = true,
+                            Karat = 22,
+                            Name = "Reşat Yarım",
+                            SortOrder = 14,
+                            UnitType = "Piece"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000010"),
+                            Code = "R_TAM",
+                            GramWeight = 7.2160m,
+                            IsActive = true,
+                            Karat = 22,
+                            Name = "Reşat Tam",
+                            SortOrder = 15,
+                            UnitType = "Piece"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000017"),
+                            Code = "R_GREMSE",
+                            GramWeight = 18.0400m,
+                            IsActive = true,
+                            Karat = 22,
+                            Name = "Reşat Gremse",
+                            SortOrder = 16,
+                            UnitType = "Piece"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000018"),
+                            Code = "R_BESLI",
+                            GramWeight = 36.0800m,
+                            IsActive = true,
+                            Karat = 22,
+                            Name = "Reşat Beşli",
+                            SortOrder = 17,
                             UnitType = "Piece"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000013"),
                             Code = "SILVER",
-                            GramWeight = 1m,
+                            GramWeight = 1.0000m,
                             IsActive = true,
                             Name = "Gümüş",
-                            SortOrder = 13,
+                            SortOrder = 18,
                             UnitType = "Gram"
                         });
                 });
@@ -319,9 +372,75 @@ namespace KuyumcuPrivate.Infrastructure.Persistence.Migrations
                     b.Property<byte[]>("Photo")
                         .HasColumnType("bytea");
 
+                    b.Property<string>("PhotoContentType")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("KuyumcuPrivate.Domain.Entities.CustomerTypeConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ColorHex")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Value")
+                        .IsUnique();
+
+                    b.ToTable("CustomerTypeConfigs");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000001"),
+                            ColorHex = "#3b82f6",
+                            IsActive = true,
+                            Name = "Özel Müşteri",
+                            SortOrder = 1,
+                            Value = 0
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000002"),
+                            ColorHex = "#8b5cf6",
+                            IsActive = true,
+                            Name = "Kuyumcu",
+                            SortOrder = 2,
+                            Value = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000003"),
+                            ColorHex = "#f59e0b",
+                            IsActive = true,
+                            Name = "Tedarikçi",
+                            SortOrder = 3,
+                            Value = 2
+                        });
                 });
 
             modelBuilder.Entity("KuyumcuPrivate.Domain.Entities.Transaction", b =>

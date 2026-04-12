@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, addDays, subDays } from "date-fns";
+import { format, subDays, subMonths, startOfYear } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ChevronLeft, ChevronRight, Calendar, ArrowDown, ArrowUp, ArrowLeftRight } from "lucide-react";
+import { Calendar, ArrowDown, ArrowUp, ArrowLeftRight } from "lucide-react";
 
 import { reportApi } from "@/api/reports";
-import type { DailyReport, Transaction } from "@/types";
+import type { DailyReport, Transaction, CustomerType } from "@/types";
 import { formatTransactionType } from "@/lib/formatters";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
+import { CustomerTypeFilter } from "@/components/shared/CustomerTypeFilter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,9 +25,9 @@ function buildColumns(navigate: (path: string) => void): ColumnDef<Transaction>[
   return [
     {
       accessorKey: "createdAt",
-      header: "Saat",
+      header: "Tarih",
       cell: ({ getValue }) => (
-        <span className="text-sm font-mono">{format(new Date(getValue<string>()), "HH:mm")}</span>
+        <span className="text-sm font-mono">{format(new Date(getValue<string>()), "dd.MM.yyyy HH:mm")}</span>
       ),
     },
     {
@@ -109,68 +110,185 @@ function buildColumns(navigate: (path: string) => void): ColumnDef<Transaction>[
 // ── DailyReportPage ───────────────────────────────────────────
 export function DailyReportPage() {
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [fromDate, setFromDate] = useState<Date>(new Date());
+  const [toDate, setToDate] = useState<Date>(new Date());
+  const [activeShortcut, setActiveShortcut] = useState<"today" | "week" | "month" | "year" | null>("today");
+  const [txTypeFilter, setTxTypeFilter] = useState<"all" | "Deposit" | "Withdrawal" | "Conversion">("all");
+  const [selectedCustomerTypes, setSelectedCustomerTypes] = useState<CustomerType[]>([]);
+
   const [report, setReport] = useState<DailyReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const fetchReport = (date: Date) => {
+  const fetchReport = (from: Date, to: Date) => {
     setLoading(true);
-    const dateStr = format(date, "yyyy-MM-dd");
+    const fromStr = format(from, "yyyy-MM-dd");
+    const toStr = format(to, "yyyy-MM-dd");
     reportApi
-      .getDaily(dateStr)
+      .getDaily(fromStr, toStr)
       .then(setReport)
-      .catch(() => toast.error("Günlük rapor yüklenemedi"))
+      .catch(() => toast.error("İşlem raporları yüklenemedi"))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    fetchReport(selectedDate);
-  }, [selectedDate]);
+    // Eğer fromDate toDate'den büyükse toDate'i de fromDate'e eşitle (opsiyonel güvenlik)
+    if (fromDate > toDate) {
+      setToDate(fromDate);
+    }
+    fetchReport(fromDate, toDate);
+  }, [fromDate, toDate]);
 
-  const goDay = (delta: number) => setSelectedDate((d) => (delta > 0 ? addDays(d, 1) : subDays(d, 1)));
+  const txData = useMemo(() => {
+    if (!report?.transactions) return [];
+    let list = report.transactions;
+    
+    // İşlem Tipi Filtresi
+    if (txTypeFilter !== "all") list = list.filter(t => t.type === txTypeFilter);
+    
+    // Müşteri Tipi Filtresi
+    if (selectedCustomerTypes.length > 0) {
+      list = list.filter(t => {
+        const typeValue = t.customerType === "Standard" ? 0 
+                       : t.customerType === "Jeweler" ? 1 
+                       : t.customerType === "Supplier" ? 2 
+                       : Number(t.customerType);
+        return selectedCustomerTypes.includes(typeValue as CustomerType);
+      });
+    }
+    
+    return list;
+  }, [report, txTypeFilter, selectedCustomerTypes]);
+
+  const reportExportSummary = useMemo(() => {
+    if (!report) return undefined;
+    const sections: any[] = [];
+    
+    if (report.deposits.length > 0) {
+      sections.push({
+        title: "Yatırma İşlemleri",
+        items: report.deposits.map(d => ({ label: d.assetTypeName, value: d.totalAmount.toLocaleString("tr-TR") }))
+      });
+    }
+    if (report.withdrawals.length > 0) {
+      sections.push({
+        title: "Çekme İşlemleri",
+        items: report.withdrawals.map(w => ({ label: w.assetTypeName, value: w.totalAmount.toLocaleString("tr-TR") }))
+      });
+    }
+    if (report.conversions.length > 0) {
+      sections.push({
+        title: "Dönüşüm İşlemleri",
+        items: report.conversions.map(c => ({ label: `${c.fromAssetCode} -> ${c.toAssetCode}`, value: `${c.count} işlem` }))
+      });
+    }
+    return sections;
+  }, [report]);
 
   const columns = buildColumns(navigate);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Günlük Rapor"
-        description="Seçilen günün işlem özeti"
+        title="Müşteri İşlemleri"
+        description="Seçilen tarih aralığındaki işlemlerin özeti"
       />
 
       {/* Tarih seçici */}
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={() => goDay(-1)}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-
-        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+      <div className="flex flex-col sm:flex-row items-center gap-2">
+        <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="min-w-40 gap-2">
+            <Button variant="outline" className="min-w-40 justify-start text-left font-normal gap-2">
               <Calendar className="h-4 w-4" />
-              {format(selectedDate, "dd MMMM yyyy", { locale: tr })}
+              {format(fromDate, "dd MMMM yyyy", { locale: tr })}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
             <CalendarComponent
+              initialFocus
               mode="single"
-              selected={selectedDate}
+              selected={fromDate}
               onSelect={(d) => {
-                if (d) { setSelectedDate(d); setCalendarOpen(false); }
+                if (d) {
+                  setFromDate(d);
+                  setActiveShortcut(null);
+                }
               }}
               locale={tr}
             />
           </PopoverContent>
         </Popover>
 
-        <Button variant="outline" size="icon" onClick={() => goDay(1)}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        <span className="text-muted-foreground hidden sm:inline-block">-</span>
 
-        <Button variant="ghost" size="sm" onClick={() => setSelectedDate(new Date())}>
-          Bugün
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="min-w-40 justify-start text-left font-normal gap-2">
+              <Calendar className="h-4 w-4" />
+              {format(toDate, "dd MMMM yyyy", { locale: tr })}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarComponent
+              initialFocus
+              mode="single"
+              selected={toDate}
+              onSelect={(d) => {
+                if (d) {
+                  setToDate(d);
+                  setActiveShortcut(null);
+                }
+              }}
+              locale={tr}
+            />
+          </PopoverContent>
+        </Popover>
+
+        <div className="flex flex-wrap items-center gap-1.5 sm:ml-2">
+          {(() => {
+            const btn = (id: "today" | "week" | "month" | "year", label: string, onClick: () => void) => {
+              const isActive = activeShortcut === id;
+              return (
+                <Button
+                  key={id}
+                  variant={isActive ? "default" : "secondary"}
+                  size="sm"
+                  className={isActive ? "shadow bg-primary text-primary-foreground" : "bg-black/[0.04] dark:bg-white/[0.04] hover:bg-black/10 dark:hover:bg-white/10"}
+                  onClick={() => {
+                    setActiveShortcut(id);
+                    onClick();
+                  }}
+                >
+                  {label}
+                </Button>
+              );
+            };
+
+            return (
+              <>
+                {btn("today", "Bugün", () => {
+                  const today = new Date();
+                  setFromDate(today);
+                  setToDate(today);
+                })}
+                {btn("week", "Son Hafta", () => {
+                  const today = new Date();
+                  setFromDate(subDays(today, 7));
+                  setToDate(today);
+                })}
+                {btn("month", "Son 1 Ay", () => {
+                  const today = new Date();
+                  setFromDate(subMonths(today, 1));
+                  setToDate(today);
+                })}
+                {btn("year", "Bu Sene", () => {
+                  const today = new Date();
+                  setFromDate(startOfYear(today));
+                  setToDate(today);
+                })}
+              </>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Özet kartlar */}
@@ -262,27 +380,90 @@ export function DailyReportPage() {
 
       {/* İşlem tablosu */}
       <div>
-        <h2 className="mb-3 text-base font-semibold">
-          Günlük İşlem Listesi{" "}
-          {report && (
-            <Badge variant="secondary" className="ml-2">
-              {report.totalTransactions} işlem
-            </Badge>
-          )}
-        </h2>
+        {(() => {
+          const depositCount = report?.transactions.filter((t) => t.type === "Deposit").length ?? 0;
+          const withdrawalCount = report?.transactions.filter((t) => t.type === "Withdrawal").length ?? 0;
+          const conversionCount = report?.transactions.filter((t) => t.type === "Conversion").length ?? 0;
+          const totalCount = report?.transactions.length ?? 0;
+
+          const renderFilterBtn = (
+            key: typeof txTypeFilter,
+            label: string,
+            count: number,
+            color: "grey" | "green" | "red" | "blue"
+          ) => {
+            const isActive = txTypeFilter === key;
+            const colorMap = {
+              grey:  { text: "text-slate-600",  activeBg: "bg-slate-50",  badge: "bg-slate-200 text-slate-600",  idleBorder: "rgba(100,116,139,0.35)", activeShadow: "0 0 0 1.5px rgba(100,116,139,0.55), 0 3px 12px rgba(100,116,139,0.22), inset 0 1px 0 rgba(255,255,255,0.5)" },
+              green: { text: "text-green-600",  activeBg: "bg-green-50",  badge: "bg-green-100 text-green-700",  idleBorder: "rgba(22,163,74,0.35)",    activeShadow: "0 0 0 1.5px rgba(22,163,74,0.65), 0 3px 14px rgba(22,163,74,0.30), 0 0 22px rgba(22,163,74,0.14), inset 0 1px 0 rgba(134,239,172,0.35)" },
+              red:   { text: "text-red-600",    activeBg: "bg-red-50",    badge: "bg-red-100 text-red-700",      idleBorder: "rgba(220,38,38,0.35)",    activeShadow: "0 0 0 1.5px rgba(220,38,38,0.65), 0 3px 14px rgba(220,38,38,0.28), 0 0 22px rgba(220,38,38,0.13), inset 0 1px 0 rgba(252,165,165,0.35)" },
+              blue:  { text: "text-blue-600",   activeBg: "bg-blue-50",   badge: "bg-blue-100 text-blue-700",    idleBorder: "rgba(37,99,235,0.35)",    activeShadow: "0 0 0 1.5px rgba(37,99,235,0.65), 0 3px 14px rgba(37,99,235,0.28), 0 0 22px rgba(37,99,235,0.13), inset 0 1px 0 rgba(147,197,253,0.35)" },
+            }[color];
+            return (
+              <button
+                key={key}
+                onClick={() => setTxTypeFilter(key)}
+                style={{
+                  boxShadow: isActive
+                    ? colorMap.activeShadow
+                    : `0 0 0 1px ${colorMap.idleBorder}`,
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border-0 transition-all duration-200 ${
+                  isActive
+                    ? `${colorMap.activeBg} ${colorMap.text}`
+                    : "bg-background text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                  isActive ? colorMap.badge : "bg-muted text-muted-foreground"
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          };
+
+          return (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
+              <h2 className="text-base font-semibold">
+                İşlem Listesi{" "}
+                {report && (
+                  <Badge variant="secondary" className="ml-2">
+                    {totalCount} işlem
+                  </Badge>
+                )}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {renderFilterBtn("all", "Tüm İşlemler", totalCount, "grey")}
+                {renderFilterBtn("Deposit", "Yatırma", depositCount, "green")}
+                {renderFilterBtn("Withdrawal", "Çekme", withdrawalCount, "red")}
+                {renderFilterBtn("Conversion", "Dönüşümler", conversionCount, "blue")}
+              </div>
+            </div>
+          );
+        })()}
+
         <DataTable
           columns={columns}
-          data={report?.transactions ?? []}
+          data={txData}
+          headerActions={
+            <CustomerTypeFilter 
+              selectedTypes={selectedCustomerTypes} 
+              onChange={setSelectedCustomerTypes} 
+            />
+          }
           isLoading={loading}
           searchPlaceholder="Müşteri veya açıklama ara..."
-          emptyMessage="Bu tarihte işlem bulunmuyor"
-          exportFilename={`gunluk-rapor-${format(selectedDate, "yyyy-MM-dd")}`}
+          emptyMessage="Bu tarihler arasında işlem bulunmuyor"
+          exportFilename={`islem-raporu-${format(fromDate, "yyyy-MM-dd")}-to-${format(toDate, "yyyy-MM-dd")}`}
+          exportSummary={reportExportSummary}
           exportColumns={[
             { accessor: "createdAt", header: "Tarih/Saat" },
             { accessor: "customerFullName", header: "Müşteri" },
-            { accessor: "type", header: "İşlem Türü" },
+            { accessor: "type", header: "İşlem Türü", formatter: (val) => formatTransactionType(val as string) },
             { accessor: "assetTypeName", header: "Varlık" },
-            { accessor: "amount", header: "Miktar" },
+            { accessor: "amount", header: "Miktar", formatter: (val) => (val as number)?.toLocaleString("tr-TR") ?? "0" },
             { accessor: "description", header: "Açıklama" },
             { accessor: "createdByFullName", header: "İşlemi Yapan" },
           ]}

@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
 using KuyumcuPrivate.Application.Interfaces;
+using KuyumcuPrivate.Domain.Enums;
 
 namespace KuyumcuPrivate.API.Endpoints;
 
@@ -10,21 +12,22 @@ public static class ReportEndpoints
             .WithTags("Reports")
             .RequireAuthorization();
 
-        // GET /api/reports/portfolio
-        group.MapGet("/portfolio", async (IReportService svc) =>
+        // GET /api/reports/portfolio?types=0&types=1
+        group.MapGet("/portfolio", async ([FromQuery] int[]? types, IReportService svc) =>
         {
-            var data = await svc.GetPortfolioAsync();
+            var customerTypes = types?.Select(t => (CustomerType)t).ToList();
+            var data = await svc.GetPortfolioAsync(customerTypes);
             return Results.Ok(data);
         });
 
-        // GET /api/reports/daily?date=2025-01-15
-        group.MapGet("/daily", async (string? date, IReportService svc) =>
+        // GET /api/reports/daily?from=2025-01-01&to=2025-01-15
+        group.MapGet("/daily", async (string? from, string? to, IReportService svc) =>
         {
-            var parsedDate = date is not null && DateOnly.TryParse(date, out var d)
-                ? d
-                : DateOnly.FromDateTime(DateTime.UtcNow);
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var fromDate = from is not null && DateOnly.TryParse(from, out var f) ? f : today;
+            var toDate   = to is not null && DateOnly.TryParse(to, out var t) ? t : today;
 
-            var data = await svc.GetDailyReportAsync(parsedDate);
+            var data = await svc.GetDailyReportAsync(fromDate, toDate);
             return Results.Ok(data);
         });
 

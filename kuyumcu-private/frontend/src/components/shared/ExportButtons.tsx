@@ -11,10 +11,21 @@ export interface ExportColumn {
   formatter?: (val: unknown) => string;
 }
 
+export interface ExportSummaryItem {
+  label: string;
+  value: string | number;
+}
+
+export interface ExportSummarySection {
+  title?: string;
+  items: ExportSummaryItem[];
+}
+
 interface ExportButtonsProps {
   data: Record<string, unknown>[];
   columns: ExportColumn[];
   filename: string; // uzantısız
+  exportSummary?: ExportSummarySection[];
 }
 
 function toRows(data: Record<string, unknown>[], columns: ExportColumn[]) {
@@ -29,11 +40,33 @@ function toRows(data: Record<string, unknown>[], columns: ExportColumn[]) {
 function exportExcel(
   data: Record<string, unknown>[],
   columns: ExportColumn[],
-  filename: string
+  filename: string,
+  exportSummary?: ExportSummarySection[]
 ) {
+  const wsRows: any[] = [];
+
+  // Summary section
+  if (exportSummary && exportSummary.length > 0) {
+    exportSummary.forEach((section) => {
+      if (section.title) {
+        wsRows.push([section.title.toUpperCase()]);
+      }
+      section.items.forEach((item) => {
+        wsRows.push([item.label, item.value]);
+      });
+      wsRows.push([]); // Boş satır
+    });
+    wsRows.push(["--- TABLO DÖKÜMÜ ---"]);
+    wsRows.push([]);
+  }
+
   const headers = columns.map((c) => c.header);
   const rows = toRows(data, columns);
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  
+  wsRows.push(headers);
+  rows.forEach(row => wsRows.push(row));
+
+  const ws = XLSX.utils.aoa_to_sheet(wsRows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Veri");
   const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -46,17 +79,47 @@ function exportExcel(
 function exportPdf(
   data: Record<string, unknown>[],
   columns: ExportColumn[],
-  filename: string
+  filename: string,
+  exportSummary?: ExportSummarySection[]
 ) {
   const doc = new jsPDF({ orientation: "landscape", format: "a4" });
-  const title = `${filename} — ${new Date().toLocaleDateString("tr-TR")}`;
-  doc.setFontSize(13);
-  doc.text(title, 14, 16);
+  const title = `${filename.replace(/-/g, " ").toUpperCase()} — ${new Date().toLocaleDateString("tr-TR")}`;
+  
+  doc.setFontSize(16);
+  doc.setTextColor(40, 40, 40);
+  doc.text(title, 14, 15);
+
+  let finalY = 20;
+
+  // Summary sections as small tables
+  if (exportSummary && exportSummary.length > 0) {
+    exportSummary.forEach((section) => {
+      if (section.title) {
+        doc.setFontSize(12);
+        doc.text(section.title, 14, finalY + 5);
+        finalY += 8;
+      }
+      
+      autoTable(doc, {
+        body: section.items.map(i => [i.label, i.value]),
+        startY: finalY,
+        styles: { fontSize: 10, cellPadding: 2 },
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: 40 } },
+        theme: "plain",
+      });
+      
+      finalY = (doc as any).lastAutoTable.finalY + 5;
+    });
+    
+    doc.setFontSize(11);
+    doc.text("İŞLEM DETAYLARI", 14, finalY + 5);
+    finalY += 10;
+  }
 
   autoTable(doc, {
     head: [columns.map((c) => c.header)],
     body: toRows(data, columns),
-    startY: 22,
+    startY: finalY,
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [40, 40, 40] },
     didDrawPage: (info) => {
@@ -73,13 +136,13 @@ function exportPdf(
   doc.save(`${filename}.pdf`);
 }
 
-export function ExportButtons({ data, columns, filename }: ExportButtonsProps) {
+export function ExportButtons({ data, columns, filename, exportSummary }: ExportButtonsProps) {
   return (
     <div className="flex items-center gap-2">
       <Button
         variant="outline"
         size="sm"
-        onClick={() => exportExcel(data, columns, filename)}
+        onClick={() => exportExcel(data, columns, filename, exportSummary)}
         disabled={data.length === 0}
         className="gap-2 border-green-200/60 bg-green-50/50 hover:bg-green-100 dark:border-green-900/30 dark:bg-green-950/20 dark:hover:bg-green-900/40 text-green-700 dark:text-green-500 hover:text-green-800 dark:hover:text-green-400 shadow-sm cursor-pointer transition-all hover:scale-105"
       >
@@ -89,7 +152,7 @@ export function ExportButtons({ data, columns, filename }: ExportButtonsProps) {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => exportPdf(data, columns, filename)}
+        onClick={() => exportPdf(data, columns, filename, exportSummary)}
         disabled={data.length === 0}
         className="gap-2 border-red-200/60 bg-red-50/50 hover:bg-red-100 dark:border-red-900/30 dark:bg-red-950/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 shadow-sm cursor-pointer transition-all hover:scale-105"
       >
@@ -99,3 +162,4 @@ export function ExportButtons({ data, columns, filename }: ExportButtonsProps) {
     </div>
   );
 }
+

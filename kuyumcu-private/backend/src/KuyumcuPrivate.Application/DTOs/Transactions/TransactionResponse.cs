@@ -6,6 +6,7 @@ public record TransactionResponse(
     Guid Id,
     Guid CustomerId,
     string CustomerFullName,
+    CustomerType CustomerType,
     TransactionType Type,
     string? AssetTypeCode,
     string? AssetTypeName,

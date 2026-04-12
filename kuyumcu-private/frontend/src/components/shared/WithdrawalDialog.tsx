@@ -125,16 +125,6 @@ export function WithdrawalDialog({
   const currentBalance = balances.find((b) => b.assetTypeId === assetTypeId);
   const balanceAmount = currentBalance?.amount ?? 0;
 
-  // Pozitif bakiyesi olan varlık id'leri
-  const positiveBalanceIds = balances
-    .filter((b) => b.amount > 0)
-    .map((b) => b.assetTypeId);
-
-  // Sıfır veya negatif bakiyeli varlıklar disabled gösterilir
-  const disabledIds = assetTypes
-    .filter((a) => !positiveBalanceIds.includes(a.id))
-    .map((a) => a.id);
-
   const getPlaceholder = () => {
     if (!selectedAsset) return "0";
     if (selectedAsset.unitType === "Currency") return "0,00";
@@ -143,15 +133,12 @@ export function WithdrawalDialog({
   };
 
   const parsedAmount = parseFloat(amount.replace(",", "."));
-  const exceedsBalance = !isNaN(parsedAmount) && parsedAmount > balanceAmount;
 
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!assetTypeId) errs.assetTypeId = "Varlık birimi seçilmeli";
     if (!amount || isNaN(parsedAmount) || parsedAmount <= 0)
       errs.amount = "Geçerli bir miktar girin (> 0)";
-    else if (exceedsBalance)
-      errs.amount = "Miktar mevcut bakiyeyi aşamaz";
     return errs;
   };
 
@@ -210,17 +197,16 @@ export function WithdrawalDialog({
                 setErrors((e) => ({ ...e, assetTypeId: "" }));
               }}
               assetTypes={assetTypes}
-              disabledIds={disabledIds}
               error={errors.assetTypeId}
             />
 
-            {/* Mevcut bakiye */}
-            {assetTypeId && currentBalance && (
+            {/* Mevcut bakiye — sıfır veya negatif olsa da göster */}
+            {assetTypeId && selectedAsset && (
               <div className="rounded-md bg-muted/50 px-3 py-2 text-sm flex items-center justify-between">
                 <span className="text-muted-foreground">Mevcut bakiye:</span>
-                <span className="font-semibold">
-                  {formatAmount(balanceAmount, currentBalance.unitType)}{" "}
-                  {currentBalance.assetTypeCode}
+                <span className={`font-semibold ${balanceAmount < 0 ? "text-red-600" : ""}`}>
+                  {formatAmount(balanceAmount, currentBalance?.unitType ?? selectedAsset.unitType)}{" "}
+                  {currentBalance?.assetTypeCode ?? selectedAsset.code}
                 </span>
               </div>
             )}
@@ -257,9 +243,6 @@ export function WithdrawalDialog({
                 autoFocus
               />
               {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
-              {!errors.amount && exceedsBalance && (
-                <p className="text-xs text-destructive">Miktar mevcut bakiyeyi aşıyor</p>
-              )}
             </div>
 
             <div className="space-y-1.5">
@@ -284,7 +267,6 @@ export function WithdrawalDialog({
                 variant="destructive"
                 className="min-h-11"
                 onClick={handleSubmit}
-                disabled={exceedsBalance}
               >
                 Çek
               </Button>

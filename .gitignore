@@ -1,3 +1,6 @@
+# .NET local secrets
+appsettings.Local.json
+
 # Logs
 logs
 *.log

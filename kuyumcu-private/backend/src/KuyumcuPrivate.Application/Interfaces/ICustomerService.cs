@@ -9,6 +9,8 @@ public interface ICustomerService
     Task<CustomerResponse> CreateAsync(CustomerCreateRequest request);
     Task<CustomerResponse?> UpdateAsync(Guid id, CustomerUpdateRequest request);
     Task<bool> DeleteAsync(Guid id);                          // Soft delete
-    Task<bool> UploadPhotoAsync(Guid id, byte[] photoBytes);
-    Task<byte[]?> GetPhotoAsync(Guid id);
+    Task<bool> UploadPhotoAsync(Guid id, byte[] photoBytes, string contentType);
+    Task<CustomerPhoto?> GetPhotoAsync(Guid id);
 }
+
+public record CustomerPhoto(byte[] Bytes, string ContentType);

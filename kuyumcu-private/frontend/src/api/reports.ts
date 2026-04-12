@@ -1,10 +1,11 @@
 import api from "./axios";
 
 export const reportApi = {
-  getPortfolio: () => api.get("/reports/portfolio").then((r) => r.data),
+  getPortfolio: (types?: number[]) => 
+    api.get("/reports/portfolio", { params: { types } }).then((r) => r.data),
 
-  getDaily: (date?: string) =>
-    api.get("/reports/daily", { params: { date } }).then((r) => r.data),
+  getDaily: (from?: string, to?: string) =>
+    api.get("/reports/daily", { params: { from, to } }).then((r) => r.data),
 
   getStatement: (customerId: string, from?: string, to?: string) =>
     api
