@@ -1,6 +1,10 @@
 # .NET local secrets
 appsettings.Local.json
 
+# Build/log output files
+build_output.txt
+output.txt
+
 # Logs
 logs
 *.log
