@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatAmount } from "@/lib/formatters";
 import type { AssetType, Balance } from "@/types";
+import type { StoreRatesMap, StoreRateUpsertPayload } from "@/api/store-rates";
+
+// ── OzetBakiyeModal ──────────────────────────────────────────────────────────
 
 export function OzetBakiyeModal({
   open,
@@ -20,9 +23,28 @@ export function OzetBakiyeModal({
   const [rates, setRates] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [result, setResult] = useState<number | null>(null);
-  const [loadingTcmb, setLoadingTcmb] = useState(false);
-  const [rateType, setRateType] = useState<"Buying" | "Selling" | "Average">("Selling");
+
+  // TCMB
+  const [loadingTcmb, setLoadingTcmb]   = useState(false);
+  const [rateType, setRateType]          = useState<"Buying" | "Selling" | "Average">("Selling");
+
+  // Mağaza kurları
+  const [storeRates, setStoreRates]     = useState<StoreRatesMap>({});
   const [magzaRateType, setMagzaRateType] = useState<"Buying" | "Average" | "Selling">("Selling");
+  const [loadingStore, setLoadingStore]  = useState(false);
+  const [savingStore, setSavingStore]    = useState(false);
+
+  // ── Yükleme ────────────────────────────────────────────────────────────────
+
+  const loadStoreRates = useCallback(async () => {
+    try {
+      const { storeRatesApi } = await import("@/api/store-rates");
+      const data = await storeRatesApi.getAll();
+      setStoreRates(data);
+    } catch {
+      // sessiz hata
+    }
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -37,7 +59,10 @@ export function OzetBakiyeModal({
       if (b.assetTypeCode === "TRY") initial[b.assetTypeId] = "1";
     }
     setRates(initial);
-  }, [open, balances]);
+    loadStoreRates();
+  }, [open, balances, loadStoreRates]);
+
+  // ── TCMB Kurları ─────────────────────────────────────────────────────────
 
   const handleFetchTcmb = async () => {
     setLoadingTcmb(true);
@@ -46,15 +71,13 @@ export function OzetBakiyeModal({
       const data = await ratesApi.getAll(rateType);
       const newRates = { ...rates };
       let filled = 0;
-      let skipped: string[] = [];
-
+      const skipped: string[] = [];
       const assetMap = new Map(assetTypes.map((a) => [a.id, a]));
 
       for (const b of balances) {
         const assetType = assetMap.get(b.assetTypeId);
 
         if (b.unitType === "Currency") {
-          // Döviz: direkt TCMB kuru
           const rate = data.currencies[b.assetTypeCode];
           if (rate != null) {
             newRates[b.assetTypeId] = rate.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
@@ -63,20 +86,14 @@ export function OzetBakiyeModal({
             skipped.push(b.assetTypeName);
           }
         } else if (assetType?.karat != null && data.goldGramTry24k != null) {
-          // Altın — karat bilgisi var
           const purity = assetType.karat / 24;
           if (b.unitType === "Gram") {
-            // Gram altın: 24k gram × saflık
-            const rate = data.goldGramTry24k * purity;
-            newRates[b.assetTypeId] = rate.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
+            newRates[b.assetTypeId] = (data.goldGramTry24k * purity).toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
             filled++;
           } else if (b.unitType === "Piece" && assetType.gramWeight != null) {
-            // Adet altın: 24k gram × saflık × gram ağırlığı
-            const rate = data.goldGramTry24k * purity * assetType.gramWeight;
-            newRates[b.assetTypeId] = rate.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
+            newRates[b.assetTypeId] = (data.goldGramTry24k * purity * assetType.gramWeight).toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
             filled++;
           } else {
-            // Adet altın ama gramWeight girilmemiş
             skipped.push(b.assetTypeName);
           }
         } else if (
@@ -84,14 +101,13 @@ export function OzetBakiyeModal({
           b.assetTypeName.toLowerCase().includes("gümüş") ||
           b.assetTypeName.toLowerCase().includes("gumus")
         ) {
-          // Gümüş: EVDS TP.GUMUS.S1 üzerinden gram fiyatı
           if (data.silverGramTry != null) {
+            const assetType2 = assetMap.get(b.assetTypeId);
             if (b.unitType === "Gram") {
               newRates[b.assetTypeId] = data.silverGramTry.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
               filled++;
-            } else if (b.unitType === "Piece" && assetType?.gramWeight != null) {
-              const rate = data.silverGramTry * assetType.gramWeight;
-              newRates[b.assetTypeId] = rate.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
+            } else if (b.unitType === "Piece" && assetType2?.gramWeight != null) {
+              newRates[b.assetTypeId] = (data.silverGramTry * assetType2.gramWeight).toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
               filled++;
             } else {
               skipped.push(b.assetTypeName);
@@ -119,6 +135,121 @@ export function OzetBakiyeModal({
       setLoadingTcmb(false);
     }
   };
+
+  // ── Mağaza Kurları — Çek ────────────────────────────────────────────────
+
+  const handleFetchStore = async () => {
+    setLoadingStore(true);
+    try {
+      // Güncel mağaza kurlarını çek (cache yenileme)
+      const { storeRatesApi } = await import("@/api/store-rates");
+      const data = await storeRatesApi.getAll();
+      setStoreRates(data);
+
+      const newRates = { ...rates };
+      let filled = 0;
+      const skipped: string[] = [];
+      const assetMap = new Map(assetTypes.map((a) => [a.id, a]));
+
+      for (const b of balances) {
+        if (b.assetTypeCode === "TRY") continue;
+        const storeRate = data[b.assetTypeCode];
+        if (!storeRate) { skipped.push(b.assetTypeName); continue; }
+
+        let baseRate: number | null = null;
+        if (magzaRateType === "Buying") {
+          baseRate = storeRate.buyingRate;
+        } else if (magzaRateType === "Selling") {
+          baseRate = storeRate.sellingRate;
+        } else {
+          // Average
+          const b2 = storeRate.buyingRate, s = storeRate.sellingRate;
+          if (b2 != null && s != null) baseRate = (b2 + s) / 2;
+          else baseRate = b2 ?? s;
+        }
+
+        if (baseRate == null) { skipped.push(b.assetTypeName); continue; }
+
+        // baseRate: 1 birim varlık için TL karşılığı (doğrudan kullanılır)
+        // — Currency için direkt kur, Gram/Piece için gram/adet başına TL
+        const assetType = assetMap.get(b.assetTypeId);
+        let finalRate = baseRate;
+
+        if (b.unitType === "Piece" && assetType?.gramWeight != null) {
+          // Mağaza kuru genellikle birim başına girilir, gramWeight zaten dahil
+          // Eğer varlık "gram" bazında tanımlanmış bir adet ise gramWeight çarp
+          // Ancak mağaza kullanıcısının adet başına kur girdiği varsayımıyla doğrudan kullanılır
+          finalRate = baseRate;
+        }
+
+        newRates[b.assetTypeId] = finalRate.toLocaleString("tr-TR", { maximumFractionDigits: 4, useGrouping: false });
+        filled++;
+      }
+
+      setRates(newRates);
+      setErrors({});
+      setResult(null);
+
+      if (skipped.length > 0) {
+        toast.info(`${filled} mağaza kuru uygulandı. Eksik kurlar: ${skipped.join(", ")}`);
+      } else if (filled > 0) {
+        toast.success("Mağaza kurları uygulandı.");
+      } else {
+        toast.warning("Kayıtlı mağaza kuru bulunamadı. Önce mağaza kurlarını kaydedin.");
+      }
+    } catch {
+      toast.error("Mağaza kurları alınamadı.");
+    } finally {
+      setLoadingStore(false);
+    }
+  };
+
+  // ── Mağaza Kurları — Kaydet (mevcut kurlardan kaydet) ──────────────────
+
+  const handleSaveCurrentAsStore = async () => {
+    // Mevcut rate inputlarından Mağaza Kurlarına kaydet
+    const payload: StoreRateUpsertPayload = {};
+    let hasAny = false;
+
+    for (const b of balances) {
+      if (b.assetTypeCode === "TRY") continue;
+      const raw = rates[b.assetTypeId] ?? "";
+      const num = parseFloat(raw.replace(",", "."));
+      if (!raw || isNaN(num) || num <= 0) continue;
+
+      // Mevcut kuru hem alış hem satış olarak kaydeder
+      // Kullanıcı önce TCMB veya manuel girip sonra "Kaydet" der
+      const existing = storeRates[b.assetTypeCode];
+      payload[b.assetTypeCode] = {
+        buyingRate:  magzaRateType === "Buying"  ? num : (existing?.buyingRate  ?? null),
+        sellingRate: magzaRateType === "Selling" ? num : (existing?.sellingRate ?? null),
+      };
+      // Average seçiliyse hem alış hem satış'ı güncelle
+      if (magzaRateType === "Average") {
+        payload[b.assetTypeCode] = { buyingRate: num, sellingRate: num };
+      }
+      hasAny = true;
+    }
+
+    if (!hasAny) {
+      toast.warning("Kaydedilecek kur bulunamadı. Önce kurları girin.");
+      return;
+    }
+
+    setSavingStore(true);
+    try {
+      const { storeRatesApi } = await import("@/api/store-rates");
+      await storeRatesApi.saveAll(payload);
+      await loadStoreRates();
+      toast.success("Mağaza kurları kaydedildi.");
+    } catch {
+      toast.error("Mağaza kurları kaydedilemedi.");
+    } finally {
+      setSavingStore(false);
+    }
+  };
+
+  // ── Hesap ────────────────────────────────────────────────────────────────
 
   const assetMap = new Map(assetTypes.map((a) => [a.id, a]));
   const groups = [
@@ -149,6 +280,8 @@ export function OzetBakiyeModal({
     }
     setResult(Math.round(total * 100) / 100);
   };
+
+  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -207,7 +340,7 @@ export function OzetBakiyeModal({
 
         {/* Sonuç */}
         {result !== null && (
-          <div className={`flex items-center justify-between rounded-lg px-4 py-3 mt-1 ${result >= 0 ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+          <div className={`flex items-center justify-between rounded-lg px-4 py-3 mt-1 ${result >= 0 ? "bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800" : "bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800"}`}>
             <span className="text-sm font-medium text-muted-foreground">Toplam TL Karşılığı</span>
             <span
               className={`text-lg font-bold tabular-nums ${result >= 0 ? "text-green-600" : "text-red-600"}`}
@@ -226,8 +359,8 @@ export function OzetBakiyeModal({
           <div className="grid grid-cols-2 gap-2">
 
             {/* Mağaza Kurları */}
-            <div className="rounded-lg border bg-muted/20 p-3 flex flex-col gap-2.5 opacity-50 select-none">
-              <p className="text-xs font-semibold text-center text-muted-foreground tracking-wide">
+            <div className="rounded-lg border bg-muted/20 p-3 flex flex-col gap-2.5">
+              <p className="text-xs font-semibold text-center text-foreground tracking-wide">
                 Mağaza Kurları
               </p>
               <div className="space-y-1.5">
@@ -235,20 +368,42 @@ export function OzetBakiyeModal({
                   const labels: Record<string, string> = { Buying: "Alış Kuru", Average: "Ortalama", Selling: "Satış Kuru" };
                   const active = magzaRateType === type;
                   return (
-                    <label key={type} onClick={() => setMagzaRateType(type)} className="flex items-center gap-2 cursor-not-allowed">
-                      <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? "border-primary" : "border-muted-foreground/40"}`}>
+                    <label
+                      key={type}
+                      onClick={() => setMagzaRateType(type)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${active ? "border-primary" : "border-muted-foreground/40"}`}>
                         {active && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
                       </span>
-                      <span className={`text-xs ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                      <span className={`text-xs transition-colors ${active ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                         {labels[type]}
                       </span>
                     </label>
                   );
                 })}
               </div>
-              <Button size="sm" variant="outline" disabled className="w-full h-7 text-xs mt-0.5">
-                Çek
-              </Button>
+              <div className="flex flex-col gap-1 mt-0.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleFetchStore}
+                  disabled={loadingStore || savingStore}
+                  className="w-full h-7 text-xs hover:text-foreground"
+                >
+                  {loadingStore ? "Yükleniyor..." : "Çek"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleSaveCurrentAsStore}
+                  disabled={loadingStore || savingStore}
+                  className="w-full h-6 text-[10px] text-muted-foreground hover:text-foreground"
+                  title="Mevcut kurları mağaza kurları olarak kaydet"
+                >
+                  {savingStore ? "Kaydediliyor..." : "↑ Kurları Kaydet"}
+                </Button>
+              </div>
             </div>
 
             {/* Merkez Bankası Kurları */}
@@ -303,3 +458,4 @@ export function OzetBakiyeModal({
     </Dialog>
   );
 }
+

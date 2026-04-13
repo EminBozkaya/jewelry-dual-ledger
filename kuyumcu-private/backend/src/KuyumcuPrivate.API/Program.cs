@@ -114,6 +114,7 @@ app.MapDashboardEndpoints();
 app.MapReportEndpoints();
 app.MapUserEndpoints();
 app.MapRatesEndpoints();
+app.MapStoreRateEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
 
