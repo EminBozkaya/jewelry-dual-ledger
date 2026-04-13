@@ -116,25 +116,81 @@
   },
   "customerDetail": {
     "loadError": "Customer not found",
-    "updateSuccess": "Updated",
+    "dataLoadError": "Failed to load data",
+    "notFound": "Customer not found.",
+    "updateSuccess": "Customer updated",
     "updateError": "Update failed",
     "deleteSuccess": "Customer deleted",
-    "deleteError": "Could not delete",
+    "deleteError": "Failed to delete",
     "photoUploadSuccess": "Photo updated",
     "photoUploadError": "Failed to upload photo",
+    "photoFormatError": "Unsupported file format. Please upload JPG, PNG, WebP or SVG.",
+    "photoSizeError": "File cannot be larger than 5MB",
     "photoDeleteSuccess": "Photo deleted",
     "photoDeleteError": "Failed to delete photo",
     "cancelSuccess": "Transaction cancelled",
     "cancelError": "Cancellation failed",
+    "activateSuccess": "Customer activated successfully",
+    "activateError": "Failed to activate customer",
     "editCustomer": "Edit Customer",
     "deleteCustomer": "Delete Customer",
     "deleteConfirmTitle": "Delete Customer",
-    "deleteConfirmDesc": "This customer will be permanently deleted. Do you want to continue?",
+    "deleteConfirmDesc": "This customer will be deleted. This action cannot be undone.",
     "delete": "Delete",
+    "phoneExistsTitle": "Phone Number Exists",
+    "phoneExistsDesc": "This phone number is already registered to another customer. Are you sure you want to update?",
+    "phoneExistsConfirm": "Yes, Update",
+    "phoneExistsCancel": "Cancel",
+    "deletePhotoTitle": "Remove Photo",
+    "deletePhotoDesc": "Are you sure you want to delete this customer's photo? This action cannot be undone.",
+    "deletePhotoConfirm": "Remove",
+    "activateTitle": "Activate Customer",
+    "activateDescription": "How would you like to set the asset status when reactivating the customer?",
+    "activateKeepOption": "Keep Last Asset Values",
+    "activateKeepOptionDesc": "Portfolio balances from the time the customer was deleted are preserved as-is.",
+    "activateResetOption": "Activate Reset",
+    "activateResetOptionDesc": "All customer asset balances are reset and old accounts are closed.",
+    "activateContinue": "Continue",
+    "activateConfirmTitle": "Confirm Action",
+    "activateConfirmDescKeep": "The customer will be reactivated with their current balances. Do you confirm?",
+    "activateConfirmDescReset": "All customer balances will be reset and the customer will be activated this way. This action cannot be undone. Do you confirm?",
+    "activateConfirmCancel": "Cancel",
+    "activateConfirm": "Yes, Activate",
+    "registrationLabel": "Registration:",
+    "viewPhotoLabel": "View original size",
+    "portfolio": "Portfolio",
+    "printPortfolioLabel": "Print Portfolio (Receipt)",
+    "allTransactions": "All Transactions",
+    "deposits": "Deposits",
+    "withdrawals": "Withdrawals",
+    "conversions": "Conversions",
+    "allAssets": "All Assets",
+    "allStatuses": "All Statuses",
+    "activeStatus": "Active",
+    "cancelledStatus": "Cancelled",
+    "conversionTableColumns": {
+      "date": "Date",
+      "source": "Source",
+      "trEquivalent": "TRY Equivalent",
+      "target": "Target",
+      "rateSource": "Rate Source"
+    },
     "balances": "Balances",
     "noBalance": "No balance",
-    "transactions": "Transaction History",
-    "noTransactions": "No transactions yet",
+    "transactions": {
+      "title": "Transaction History",
+      "noTransactions": "No transactions yet",
+      "filtersClear": "Clear Filters",
+      "dateFrom": "Start Date",
+      "dateTo": "End Date",
+      "selectDate": "Select date",
+      "searchPlaceholder": "Search transactions...",
+      "emptyMessage": "No transactions match the filter"
+    },
+    "conversionsTable": {
+      "searchPlaceholder": "Search conversions...",
+      "emptyMessage": "No conversions yet"
+    },
     "deposit": "Deposit",
     "withdrawal": "Withdraw",
     "conversion": "Convert",
@@ -149,6 +205,11 @@
     "nationalId": "National ID",
     "registrationDate": "Registration Date",
     "customerType": "Customer Type",
+    "assetGroups": {
+      "currency": "Currency",
+      "gold": "Gold",
+      "other": "Other"
+    },
     "columns": {
       "date": "Date",
       "type": "Transaction Type",
@@ -165,8 +226,8 @@
     },
     "cancel": {
       "title": "Cancel Transaction",
-      "type": "Transaction Type",
-      "amount": "Amount",
+      "type": "Transaction Type:",
+      "amount": "Amount:",
       "reason": "Cancellation reason",
       "reasonPlaceholder": "Write the reason...",
       "confirm": "Cancel Transaction",
@@ -186,9 +247,14 @@
       "rateLabel": "TRY Rate"
     },
     "form": {
+      "title": "Edit Customer",
       "firstName": "First Name",
+      "firstNameRequired": "First Name *",
       "lastName": "Last Name",
+      "lastNameRequired": "Last Name *",
       "customerType": "Customer Type",
+      "customerTypeRequired": "Customer Type *",
+      "selectType": "Select type",
       "phone": "Phone",
       "nationalId": "National ID",
       "email": "Email",
@@ -197,7 +263,33 @@
       "save": "Save",
       "saving": "Saving...",
       "cancel": "Cancel"
-    }
+    },
+    "buttons": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "uploadPhoto": "Update",
+      "removePhoto": "Remove",
+      "calculateBalance": "Calculate Customer Balance",
+      "deposit": "Deposit",
+      "withdraw": "Withdraw",
+      "convert": "Convert"
+    },
+    "dateFormat": {
+      "placeholder": "MM/DD/YYYY"
+    },
+    "sections": {
+      "transactionHistory": "Transaction History"
+    },
+    "defaultError": "Update failed",
+    "pageDescription": "Customer details"
+  },
+  "print": {
+    "title": "Customer Portfolio Summary",
+    "header": "PRIVATE LEDGER",
+    "subtitle": "PORTFOLIO SUMMARY",
+    "dateLabel": "Date:",
+    "customerLabel": "Customer:",
+    "footer": "Thank you for choosing us."
   },
   "transactions": {
     "title": "Transactions",
@@ -545,7 +637,10 @@
     "updateError": "Update failed",
     "deleteSuccess": "Deleted",
     "deleteError": "Could not delete",
-    "toggleError": "Operation failed"
+    "toggleError": "Operation failed",
+    "specialCustomer": "Regular Customer",
+    "jeweler": "Jeweler",
+    "supplier": "Supplier"
   },
   "common": {
     "confirm": "Confirm",
@@ -562,6 +657,12 @@
     "optional": "Optional...",
     "error": "Error",
     "success": "Success"
+  },
+  "assetTypeSelect": {
+    "placeholder": "Select asset unit...",
+    "searchPlaceholder": "Search...",
+    "noResults": "No results found",
+    "insufficientBalance": "Insufficient"
   },
   "modal": {
     "generalBalance": "Calculate General Balance",
@@ -699,5 +800,18 @@
     "deposit": "Deposit",
     "withdrawal": "Withdrawal",
     "conversion": "Conversion"
+  },
+  "rates": {
+    "ratesUpdated": "All rates updated from Central Bank data.",
+    "partialUpdate": "{{count}} rate(s) updated. Manual entry required for: {{skipped}}",
+    "fetchError": "Could not fetch rates. Please try again."
+  },
+  "validation": {
+    "rateRequired": "Rate must be entered"
+  },
+  "api": {
+    "unauthorized": "You do not have permission for this operation.",
+    "serverError": "Server error. Please try again.",
+    "networkError": "Connection error. Please check your internet connection."
   }
 }

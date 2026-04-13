@@ -111,12 +111,13 @@ export function OzetBakiyeModal({
       setResult(null);
 
       if (skipped.length > 0) {
-        toast.info(`${filled} kur güncellendi. Manuel girilmesi gereken: ${skipped.join(", ")}`);
+        const msg = t("rates.partialUpdate", { count: filled, skipped: skipped.join(", ") });
+        toast.info(msg);
       } else {
-        toast.success("Tüm kurlar Merkez Bankası verisiyle güncellendi.");
+        toast.success(t("rates.ratesUpdated"));
       }
     } catch {
-      toast.error("Kurlar alınamadı. Lütfen tekrar deneyin.");
+      toast.error(t("rates.fetchError"));
     } finally {
       setLoadingTcmb(false);
     }
@@ -135,7 +136,7 @@ export function OzetBakiyeModal({
       const raw = rates[b.assetTypeId] ?? "";
       const num = parseFloat(raw.replace(",", "."));
       if (!raw || isNaN(num) || num <= 0) {
-        errs[b.assetTypeId] = "Kur girilmeli";
+        errs[b.assetTypeId] = t("validation.rateRequired");
       }
     }
     if (Object.keys(errs).length > 0) {

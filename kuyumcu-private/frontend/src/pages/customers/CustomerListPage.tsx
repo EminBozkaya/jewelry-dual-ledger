@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import { customerApi } from "@/api/customers";
 import { customerTypeApi } from "@/api/customer-types";
 import type { Customer, CustomerCreateRequest, CustomerTypeConfig } from "@/types";
-import { formatDateShort } from "@/lib/formatters";
+import { formatDateShort, formatCustomerType } from "@/lib/formatters";
 
 import { isValidTC } from "@/lib/validations";
 import { PhoneInput } from "@/components/shared/PhoneInput";
@@ -183,7 +183,7 @@ export function CustomerListPage() {
               border: `1px solid ${cfg.colorHex}44`,
             }}
           >
-            {cfg.name}
+            {formatCustomerType(cfg.value, t)}
           </span>
         );
       },
@@ -392,7 +392,7 @@ export function CustomerListPage() {
                     <SelectContent>
                       {customerTypes.filter((ct) => ct.isActive).map((ct) => (
                         <SelectItem key={ct.id} value={String(ct.value)}>
-                          {ct.name}
+                          {formatCustomerType(ct.value, t)}
                         </SelectItem>
                       ))}
                     </SelectContent>

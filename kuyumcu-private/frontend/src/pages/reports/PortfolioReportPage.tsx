@@ -6,7 +6,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Users, ArrowRight, Banknote, Coins, Scale } from "lucide-react";
 
 import { reportApi } from "@/api/reports";
-import type { PortfolioAsset, AssetDetailCustomer } from "@/types";
+import { assetTypeApi } from "@/api/asset-types";
+import type { PortfolioAsset, AssetDetailCustomer, AssetType, Balance } from "@/types";
+import { OzetBakiyeModal } from "@/components/shared/OzetBakiyeModal";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
@@ -157,6 +159,13 @@ export function PortfolioReportPage() {
   const [assetDetail, setAssetDetail] = useState<AssetDetailCustomer[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
+  const [ozetOpen, setOzetOpen] = useState(false);
+
+  useEffect(() => {
+    assetTypeApi.getAll().then(list => setAssetTypes(list.filter(a => a.isActive))).catch(() => {});
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     reportApi
@@ -282,6 +291,16 @@ export function PortfolioReportPage() {
     }];
   }, [selectedAsset, t]);
 
+  const portfolioBalances = useMemo((): Balance[] => {
+    return portfolio.map((p) => ({
+      assetTypeId: p.assetTypeId,
+      assetTypeCode: p.assetTypeCode,
+      assetTypeName: p.assetTypeName,
+      unitType: p.unitType,
+      amount: p.netAmount,
+    }));
+  }, [portfolio]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -309,6 +328,34 @@ export function PortfolioReportPage() {
               {groups.map((group) => (
                 <PortfolioGroupSection key={group.label} group={group} onDetail={openDetail} />
               ))}
+            </div>
+          )}
+
+          {portfolio.length > 0 && !loading && (
+            <div className="mt-2 p-5 border-t border-black/[0.03] dark:border-white/[0.03] flex justify-center">
+              <button
+                onClick={() => setOzetOpen(true)}
+                className="group flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300"
+                style={{
+                  color: "var(--color-gold)",
+                  background: "rgba(212,164,55,0.06)",
+                  border: "1px solid rgba(212,164,55,0.3)",
+                  boxShadow: "0 0 0 1px rgba(212,164,55,0.15), 0 2px 8px rgba(212,164,55,0.12), inset 0 1px 0 rgba(245,209,110,0.15)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(212,164,55,0.12)";
+                  e.currentTarget.style.borderColor = "rgba(212,164,55,0.6)";
+                  e.currentTarget.style.boxShadow = "0 0 0 1px rgba(212,164,55,0.4), 0 4px 16px rgba(212,164,55,0.3), 0 0 28px rgba(212,164,55,0.15), inset 0 1px 0 rgba(245,209,110,0.25)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(212,164,55,0.06)";
+                  e.currentTarget.style.borderColor = "rgba(212,164,55,0.3)";
+                  e.currentTarget.style.boxShadow = "0 0 0 1px rgba(212,164,55,0.15), 0 2px 8px rgba(212,164,55,0.12), inset 0 1px 0 rgba(245,209,110,0.15)";
+                }}
+              >
+                <span style={{ fontSize: "1rem", lineHeight: 1 }}>₺</span>
+                {t("dashboard.calculateGeneralBalance") || "Mağaza Bakiye Hesapla"}
+              </button>
             </div>
           )}
         </div>
@@ -363,6 +410,13 @@ export function PortfolioReportPage() {
           />
         </DialogContent>
       </Dialog>
+
+      <OzetBakiyeModal
+        open={ozetOpen}
+        onOpenChange={setOzetOpen}
+        balances={portfolioBalances}
+        assetTypes={assetTypes}
+      />
     </div>
   );
 }

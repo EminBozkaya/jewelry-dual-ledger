@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
+import { formatCustomerType } from "@/lib/formatters";
 import type { CustomerTypeConfig } from "@/types";
 
 interface CustomerTypeFilterProps {
@@ -50,12 +51,12 @@ export function CustomerTypeFilter({
         <>
           <div className="w-[1px] h-4 bg-border mx-1 opacity-50" />
           <div className="flex items-center gap-1">
-            {types.map((t) => {
-              const isSelected = selectedTypes.includes(t.value);
+            {types.map((ct) => {
+              const isSelected = selectedTypes.includes(ct.value);
               return (
                 <button
-                  key={t.id}
-                  onClick={() => handleToggle(t.value)}
+                  key={ct.id}
+                  onClick={() => handleToggle(ct.value)}
                   className={cn(
                     "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 border",
                     isSelected
@@ -65,22 +66,22 @@ export function CustomerTypeFilter({
                   style={
                     isSelected
                       ? {
-                          backgroundColor: t.colorHex + "18",
-                          color: t.colorHex,
-                          borderColor: t.colorHex + "44",
+                          backgroundColor: ct.colorHex + "18",
+                          color: ct.colorHex,
+                          borderColor: ct.colorHex + "44",
                         }
                       : undefined
                   }
                 >
                   <span
                     className="h-2 w-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: isSelected ? t.colorHex : "currentColor", opacity: isSelected ? 1 : 0.4 }}
+                    style={{ backgroundColor: isSelected ? ct.colorHex : "currentColor", opacity: isSelected ? 1 : 0.4 }}
                   />
-                  {t.name}
+                  {formatCustomerType(ct.value, t)}
                   {isSelected && (
                     <span
                       className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                      style={{ backgroundColor: t.colorHex }}
+                      style={{ backgroundColor: ct.colorHex }}
                     />
                   )}
                 </button>

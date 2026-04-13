@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Pencil, Trash2, Upload, Banknote, ArrowUpFromLine, RefreshCw, Printer } from "lucide-react";
+import i18n from "@/i18n";
+import { format } from "date-fns";
+import { tr, enUS } from "date-fns/locale";
+import { Pencil, Trash2, Upload, Banknote, ArrowUpFromLine, RefreshCw, Printer, Calendar as CalendarIcon } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,7 +17,7 @@ import { transactionApi } from "@/api/transactions";
 import { assetTypeApi } from "@/api/asset-types";
 import { customerTypeApi } from "@/api/customer-types";
 import type { AssetType, Customer, Balance, Transaction, CustomerUpdateRequest, CustomerTypeConfig } from "@/types";
-import { formatDate, formatDateShort, formatTransactionType, formatAmount } from "@/lib/formatters";
+import { formatDate, formatDateShort, formatTransactionType, formatCustomerType, formatAmount } from "@/lib/formatters";
 import { useAuth } from "@/hooks/useAuth";
 import { isValidTC } from "@/lib/validations";
 import { breadcrumbLabelRegistry } from "@/lib/breadcrumb";
@@ -52,15 +55,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // ── Zod schema ─────────────────────────────────────────────────
 const schema = z.object({
-  firstName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
-  lastName: z.string().min(2, "En az 2 karakter").max(50, "En fazla 50 karakter"),
-  type: z.number().int().min(0, "Müşteri tipi seçiniz"),
+  firstName: z.string().min(2, "min_2").max(50, "max_50"),
+  lastName: z.string().min(2, "min_2").max(50, "max_50"),
+  type: z.number().int().min(0, "select_type"),
   phone: z.string().optional().nullable().superRefine((val, ctx) => {
     if (!val || val.trim() === "") return;
-    
+
     const parts = val.split(" ");
     if (parts.length < 2) return;
 
@@ -72,22 +77,22 @@ const schema = z.object({
 
     if (code === "+90") {
       if (num.length !== 10) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "10 haneli telefon numarası girmelisiniz" });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "phone_10_digits" });
       }
     } else {
       if (num.length < 5) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Geçerli bir telefon numarası giriniz" });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "phone_invalid" });
       }
     }
   }),
   nationalId: z
     .string()
     .optional()
-    .refine((v) => !v || isValidTC(v), "Geçerli bir TC Kimlik No giriniz"),
+    .refine((v) => !v || isValidTC(v), "national_id_invalid"),
   email: z
     .string()
     .optional()
-    .refine((v) => !v || z.string().email().safeParse(v).success, "Geçerli e-posta"),
+    .refine((v) => !v || z.string().email().safeParse(v).success, "email_invalid"),
   address: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -95,6 +100,7 @@ type FormValues = z.infer<typeof schema>;
 
 // ── İşlem tipi badge rengi ────────────────────────────────────
 function TransactionTypeBadge({ type }: { type: string }) {
+  const { t } = useTranslation();
   const map: Record<string, string> = {
     Deposit: "bg-green-100 text-green-800",
     Withdrawal: "bg-red-100 text-red-800",
@@ -104,7 +110,7 @@ function TransactionTypeBadge({ type }: { type: string }) {
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${map[type] ?? "bg-muted text-muted-foreground"}`}
     >
-      {formatTransactionType(type)}
+      {formatTransactionType(type, t)}
     </span>
   );
 }
@@ -122,6 +128,7 @@ function CancelDialog({
   onConfirm: (reason: string) => void;
 }) {
   const [reason, setReason] = useState("");
+  const { t } = useTranslation();
   useEffect(() => {
     if (!open) setReason("");
   }, [open]);
@@ -130,41 +137,41 @@ function CancelDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>İşlemi İptal Et</DialogTitle>
+          <DialogTitle>{t("customerDetail.cancel.title")}</DialogTitle>
         </DialogHeader>
         {transaction && (
           <div className="rounded-lg border bg-muted/40 p-3 text-sm space-y-1 mb-1">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">İşlem Türü:</span>
+              <span className="text-muted-foreground">{t("customerDetail.cancel.type")}</span>
               <span>{formatTransactionType(transaction.type)}</span>
             </div>
             {transaction.amount != null && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Miktar:</span>
+                <span className="text-muted-foreground">{t("customerDetail.cancel.amount")}</span>
                 <span>{formatAmount(transaction.amount, "Piece")} {transaction.assetTypeCode}</span>
               </div>
             )}
           </div>
         )}
         <div className="space-y-2 py-1">
-          <Label>İptal sebebi *</Label>
+          <Label>{t("customerDetail.cancel.reason")} *</Label>
           <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
-            placeholder="Sebebi yazın..."
+            placeholder={t("customerDetail.cancel.reasonPlaceholder")}
           />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Vazgeç
+            {t("customerDetail.cancel.back")}
           </Button>
           <Button
             variant="destructive"
             disabled={!reason.trim()}
             onClick={() => onConfirm(reason.trim())}
           >
-            İptal Et
+            {t("customerDetail.cancel.confirm")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -279,7 +286,7 @@ export function CustomerDetailPage() {
       setAssetTypes(at.filter((a) => a.isActive));
       setCustomerTypes(ct);
     } catch {
-      toast.error("Müşteri bilgileri yüklenemedi");
+      toast.error(t("customerDetail.loadError"));
     } finally {
       setLoading(false);
     }
@@ -296,7 +303,7 @@ export function CustomerDetailPage() {
       setBalances(b.filter((bal) => bal.amount !== 0));
       setTransactions(t);
     } catch {
-      toast.error("Veriler yenilenemedi");
+      toast.error(t("customerDetail.dataLoadError"));
     }
   };
 
@@ -321,20 +328,20 @@ export function CustomerDetailPage() {
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Desteklenmeyen dosya formatı. Lütfen JPG, PNG, WebP veya SVG yükleyin.");
+      toast.error(t("customerDetail.photoFormatError"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Dosya 5MB'dan büyük olamaz");
+      toast.error(t("customerDetail.photoSizeError"));
       return;
     }
     try {
       await customerApi.uploadPhoto(id, file);
-      toast.success("Fotoğraf güncellendi");
+      toast.success(t("customerDetail.photoUploadSuccess"));
       setPhotoKey((k) => k + 1);
       setCustomer((c) => c ? { ...c, hasPhoto: true } : c);
     } catch {
-      toast.error("Fotoğraf yüklenemedi");
+      toast.error(t("customerDetail.photoUploadError"));
     }
     e.target.value = "";
   };
@@ -344,12 +351,12 @@ export function CustomerDetailPage() {
     
     try {
       await customerApi.deletePhoto(id);
-      toast.success("Fotoğraf silindi");
+      toast.success(t("customerDetail.photoDeleteSuccess"));
       setPhotoKey((k) => k + 1);
       setCustomer((c) => c ? { ...c, hasPhoto: false } : c);
       setDeletePhotoOpen(false);
     } catch {
-      toast.error("Fotoğraf silinemedi");
+      toast.error(t("customerDetail.photoDeleteError"));
     }
   };
 
@@ -386,7 +393,7 @@ export function CustomerDetailPage() {
       const updated = await customerApi.update(id, req);
       setCustomer(updated);
       breadcrumbLabelRegistry.set(id, `${updated.firstName} ${updated.lastName}`);
-      toast.success("Müşteri güncellendi");
+      toast.success(t("customerDetail.updateSuccess"));
       setEditOpen(false);
     } catch (err: any) {
       const errorMsg = err.response?.data?.error;
@@ -404,7 +411,7 @@ export function CustomerDetailPage() {
         setPendingUpdateReq(req);
         setPhoneWarningOpen(true);
       } else {
-        toast.error(errorMsg || "Güncelleme başarısız");
+        toast.error(errorMsg || t("customerDetail.updateError"));
       }
     } finally {
       setSaving(false);
@@ -419,11 +426,11 @@ export function CustomerDetailPage() {
       const updated = await customerApi.update(id, { ...pendingUpdateReq, ignorePhoneWarning: true });
       setCustomer(updated);
       breadcrumbLabelRegistry.set(id, `${updated.firstName} ${updated.lastName}`);
-      toast.success("Müşteri güncellendi");
+      toast.success(t("customerDetail.updateSuccess"));
       setEditOpen(false);
       setPendingUpdateReq(null);
     } catch (err: any) {
-      const msg = err.response?.data?.error || "Güncelleme başarısız";
+      const msg = err.response?.data?.error || t("customerDetail.defaultError");
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -435,10 +442,10 @@ export function CustomerDetailPage() {
     if (!id) return;
     try {
       await customerApi.delete(id);
-      toast.success("Müşteri silindi");
+      toast.success(t("customerDetail.deleteSuccess"));
       navigate("/customers");
     } catch {
-      toast.error("Silme işlemi başarısız");
+      toast.error(t("customerDetail.deleteError"));
     }
   };
 
@@ -447,11 +454,11 @@ export function CustomerDetailPage() {
     if (!cancelTarget) return;
     try {
       await transactionApi.cancel(cancelTarget.id, reason);
-      toast.success("İşlem iptal edildi");
+      toast.success(t("customerDetail.cancelSuccess"));
       setCancelTarget(null);
       await refreshData();
     } catch {
-      toast.error("İptal işlemi başarısız");
+      toast.error(t("customerDetail.cancelError"));
     }
   };
 
@@ -465,11 +472,11 @@ export function CustomerDetailPage() {
     try {
       const resetBalances = restoreOption === "reset";
       await customerApi.restore(id, resetBalances);
-      toast.success("Müşteri başarıyla aktif edildi");
+      toast.success(t("customerDetail.activateSuccess"));
       setRestoreConfirmOpen(false);
       loadAll();
     } catch {
-      toast.error("Müşteri aktif edilemedi");
+      toast.error(t("customerDetail.activateError"));
     }
   };
 
@@ -509,32 +516,32 @@ export function CustomerDetailPage() {
   const txColumns: ColumnDef<Transaction>[] = [
     {
       accessorKey: "createdAt",
-      header: "Tarih",
+      header: t("customerDetail.columns.date"),
       cell: ({ getValue }) => formatDate(getValue<string>()),
     },
     {
       accessorKey: "type",
-      header: "İşlem Türü",
+      header: t("customerDetail.columns.type"),
       cell: ({ getValue }) => <TransactionTypeBadge type={getValue<string>()} />,
     },
     {
       id: "asset",
-      header: "Varlık",
+      header: t("customerDetail.columns.asset"),
       cell: ({ row }) => {
-        const t = row.original;
-        if (t.type === "Conversion" && t.conversion) {
+        const tx = row.original;
+        if (tx.type === "Conversion" && tx.conversion) {
           return (
             <span className="text-sm">
-              {t.conversion.fromAssetCode} → {t.conversion.toAssetCode}
+              {tx.conversion.fromAssetCode} → {tx.conversion.toAssetCode}
             </span>
           );
         }
-        return <span className="text-sm">{t.assetTypeName ?? "—"}</span>;
+        return <span className="text-sm">{tx.assetTypeName ?? "—"}</span>;
       },
     },
     {
       id: "amount",
-      header: "Miktar",
+      header: t("customerDetail.columns.amount"),
       cell: ({ row }) => {
         const t = row.original;
         if (t.isCancelled) {
@@ -568,7 +575,7 @@ export function CustomerDetailPage() {
     },
     {
       accessorKey: "description",
-      header: "Açıklama",
+      header: t("customerDetail.columns.description"),
       enableSorting: false,
       cell: ({ getValue }) => (
         <span className="hidden md:block max-w-[160px] truncate text-sm text-muted-foreground" title={getValue<string>()}>
@@ -578,7 +585,7 @@ export function CustomerDetailPage() {
     },
     {
       accessorKey: "createdByFullName",
-      header: "İşlemi Yapan",
+      header: t("customerDetail.columns.by"),
       enableSorting: false,
       cell: ({ getValue }) => (
         <span className="hidden lg:block text-sm">{getValue<string>()}</span>
@@ -586,23 +593,23 @@ export function CustomerDetailPage() {
     },
     {
       id: "status",
-      header: "Durum",
+      header: t("customerDetail.columns.status"),
       enableSorting: false,
       cell: ({ row }) => {
-        const t = row.original;
-        if (t.isCancelled) {
+        const tx = row.original;
+        if (tx.isCancelled) {
           return (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>
                   <Badge variant="destructive" className="text-xs cursor-help">
-                    İptal
+                    {t("customerDetail.status.cancelled")}
                   </Badge>
                 </span>
               </TooltipTrigger>
-              {t.cancelReason && (
+              {tx.cancelReason && (
                 <TooltipContent>
-                  <p className="max-w-[200px]">{t.cancelReason}</p>
+                  <p className="max-w-[200px]">{tx.cancelReason}</p>
                 </TooltipContent>
               )}
             </Tooltip>
@@ -616,10 +623,10 @@ export function CustomerDetailPage() {
               className="text-destructive hover:text-destructive text-xs h-7"
               onClick={(e) => {
                 e.stopPropagation();
-                setCancelTarget(t);
+                setCancelTarget(tx);
               }}
             >
-              İptal Et
+              {t("customerDetail.cancel.confirm")}
             </Button>
           );
         }
@@ -650,7 +657,7 @@ export function CustomerDetailPage() {
   }
 
   if (!customer) {
-    return <p className="text-muted-foreground">Müşteri bulunamadı.</p>;
+    return <p className="text-muted-foreground">{t("customerDetail.notFound")}</p>;
   }
 
   const initials = `${customer.firstName[0]}${customer.lastName[0]}`.toUpperCase();
@@ -668,18 +675,18 @@ export function CustomerDetailPage() {
             )}
           </div>
         }
-        description="Müşteri detayı"
+        description={t("customerDetail.pageDescription")}
         actions={
           customer.isDeleted ? (
             <Button size="sm" onClick={() => setRestoreOpen(true)} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
               <RefreshCw className="h-4 w-4" />
-              Müşteriyi Aktif Et
+              {t("customerDetail.activateTitle")}
             </Button>
           ) : (
             <>
               <Button variant="outline" size="sm" onClick={openEdit} className="gap-2">
                 <Pencil className="h-4 w-4" />
-                Düzenle
+                {t("customerDetail.buttons.edit")}
               </Button>
               <Button
                 variant="outline"
@@ -688,14 +695,14 @@ export function CustomerDetailPage() {
                 onClick={() => setDeleteOpen(true)}
               >
                 <Trash2 className="h-4 w-4" />
-                Sil
+                {t("customerDetail.buttons.delete")}
               </Button>
             </>
           )
         }
       />
 
-      <div className={customer.isDeleted ? "opacity-50 pointer-events-none grayscale transition-opacity" : ""}>
+      <div className={`space-y-8 ${customer.isDeleted ? "opacity-50 pointer-events-none grayscale transition-opacity" : ""}`}>
       {/* Bilgi Kartı — Tam genişlik, 3 sütun: Avatar | Bilgiler | Portföy */}
       <Card>
         <CardContent className="p-6">
@@ -709,7 +716,7 @@ export function CustomerDetailPage() {
                 onClick={() => {
                   if (customer.hasPhoto) setPhotoViewerOpen(true);
                 }}
-                title={customer.hasPhoto ? "Orijinal boyutu gör" : undefined}
+                title={customer.hasPhoto ? t("customerDetail.viewPhotoLabel") : undefined}
               >
                 {customer.hasPhoto && (
                   <AvatarImage
@@ -730,7 +737,7 @@ export function CustomerDetailPage() {
                   onClick={() => fileRef.current?.click()}
                 >
                   <Upload className="h-3 w-3 mr-1.5" />
-                  Güncelle
+                  {t("customerDetail.buttons.uploadPhoto")}
                 </Button>
 
                 {customer.hasPhoto && (
@@ -741,7 +748,7 @@ export function CustomerDetailPage() {
                     onClick={() => setDeletePhotoOpen(true)}
                   >
                     <Trash2 className="h-3 w-3 mr-1.5" />
-                    Kaldır
+                    {t("customerDetail.buttons.removePhoto")}
                   </Button>
                 )}
               </div>
@@ -761,7 +768,7 @@ export function CustomerDetailPage() {
                 <div className="flex flex-col items-start gap-1.5 mb-2">
                   <h2 className="text-2xl font-bold">{customer.fullName}</h2>
                   {(() => {
-                    const cfg = customerTypes.find((t) => t.value === Number(customer.type));
+                    const cfg = customerTypes.find((ct) => ct.value === Number(customer.type));
                     if (!cfg) return null;
                     return (
                       <span
@@ -772,7 +779,7 @@ export function CustomerDetailPage() {
                           border: `1px solid ${cfg.colorHex}44`,
                         }}
                       >
-                        {cfg.name}
+                        {formatCustomerType(cfg.value, t)}
                       </span>
                     );
                   })()}
@@ -791,7 +798,7 @@ export function CustomerDetailPage() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground pt-1">
-                  Kayıt: {formatDateShort(customer.createdAt)}
+                  {t("customerDetail.registrationLabel")} {formatDateShort(customer.createdAt)}
                 </p>
               </div>
             </div>
@@ -803,37 +810,42 @@ export function CustomerDetailPage() {
               const altin = balances.filter((b) => b.unitType !== "Currency" && assetMap.get(b.assetTypeId)?.karat != null);
               const diger = balances.filter((b) => b.unitType !== "Currency" && assetMap.get(b.assetTypeId)?.karat == null);
 
-              const groups = [
-                { title: "Döviz", items: doviz },
-                { title: "Altın", items: altin },
-                { title: "Diğer", items: diger },
+              const groupsWithKeys = [
+                { titleKey: "currency", items: doviz },
+                { titleKey: "gold", items: altin },
+                { titleKey: "other", items: diger },
               ].filter((g) => g.items.length > 0);
+
+              const printGroups = groupsWithKeys.map((g) => ({
+                title: t(`customerDetail.assetGroups.${g.titleKey}`),
+                items: g.items,
+              }));
 
               return (
                 <div className="sm:flex-1 sm:pl-8 flex justify-center sm:justify-start items-start">
                   <div className="w-full max-w-xs">
                     <div className="flex items-center gap-2 mb-3">
                       <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                        Portföy
+                        {t("customerDetail.portfolio")}
                       </p>
                       {balances.length > 0 && (
                         <button
-                          onClick={() => printReceipt(customer!, groups)}
+                          onClick={() => printReceipt(customer!, printGroups, t)}
                           className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                          title="Portföyü Yazdır (Adisyon)"
+                          title={t("customerDetail.printPortfolioLabel")}
                         >
                           <Printer className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </div>
                     {balances.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">Bakiye yok</p>
+                      <p className="text-xs text-muted-foreground italic">{t("customerDetail.noBalance")}</p>
                     ) : (
                       <div className="space-y-3">
-                        {groups.map((g) => (
-                          <div key={g.title}>
+                        {groupsWithKeys.map((g) => (
+                          <div key={g.titleKey}>
                             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-1">
-                              {g.title}
+                              {t(`customerDetail.assetGroups.${g.titleKey}`)}
                             </p>
                             <div className="space-y-0.5">
                               {g.items.map((b) => {
@@ -888,7 +900,7 @@ export function CustomerDetailPage() {
                 }}
               >
                 <span style={{ fontSize: "1rem", lineHeight: 1 }}>₺</span>
-                Müşteri Bakiye Hesapla
+                {t("customerDetail.buttons.calculateBalance")}
               </button>
             </div>
           )}
@@ -896,13 +908,13 @@ export function CustomerDetailPage() {
       </Card>
 
       {/* İşlem Butonları */}
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
         <Button
           className="flex-1 gap-2 min-h-11 bg-green-600 hover:bg-green-700"
           onClick={() => setDepositOpen(true)}
         >
           <Banknote className="h-4 w-4" />
-          Yatır
+          {t("customerDetail.buttons.deposit")}
         </Button>
         <Button
           variant="outline"
@@ -910,7 +922,7 @@ export function CustomerDetailPage() {
           onClick={() => setWithdrawOpen(true)}
         >
           <ArrowUpFromLine className="h-4 w-4" />
-          Çek
+          {t("customerDetail.buttons.withdraw")}
         </Button>
         <Button
           variant="outline"
@@ -918,7 +930,7 @@ export function CustomerDetailPage() {
           onClick={() => setConvertOpen(true)}
         >
           <RefreshCw className="h-4 w-4" />
-          Dönüştür
+          {t("customerDetail.buttons.convert")}
         </Button>
       </div>
 
@@ -972,21 +984,21 @@ export function CustomerDetailPage() {
 
           return (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h3 className="text-base font-semibold">İşlem Geçmişi</h3>
-              <div className="flex flex-wrap gap-2">
-                {btn("all", "Tüm İşlemler", transactions.length, "grey", () => {
+              <h3 className="text-base font-semibold">{t("customerDetail.sections.transactionHistory")}</h3>
+              <div className="flex flex-wrap gap-3">
+                {btn("all", t("customerDetail.allTransactions"), transactions.length, "grey", () => {
                   setActiveTab("all");
                   setFilters((f) => ({ ...f, type: "all" }));
                 })}
-                {btn("deposit", "Yatırma", depositCount, "green", () => {
+                {btn("deposit", t("customerDetail.deposits"), depositCount, "green", () => {
                   setActiveTab("all");
                   setFilters((f) => ({ ...f, type: "Deposit" }));
                 })}
-                {btn("withdrawal", "Çekme", withdrawalCount, "red", () => {
+                {btn("withdrawal", t("customerDetail.withdrawals"), withdrawalCount, "red", () => {
                   setActiveTab("all");
                   setFilters((f) => ({ ...f, type: "Withdrawal" }));
                 })}
-                {btn("conversions", "Dönüşümler", conversionTxs.length, "blue", () => {
+                {btn("conversions", t("customerDetail.conversions"), conversionTxs.length, "blue", () => {
                   setActiveTab("conversions");
                 })}
               </div>
@@ -1003,10 +1015,10 @@ export function CustomerDetailPage() {
                 onValueChange={(v) => setFilters((f) => ({ ...f, assetCode: v }))}
               >
                 <SelectTrigger className="min-h-9 text-sm">
-                  <SelectValue placeholder="Varlık" />
+                  <SelectValue placeholder={t("customerDetail.allAssets")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tüm Varlıklar</SelectItem>
+                  <SelectItem value="all">{t("customerDetail.allAssets")}</SelectItem>
                   {uniqueAssetCodes.map((code) => (
                     <SelectItem key={code} value={code}>
                       {code}
@@ -1020,12 +1032,12 @@ export function CustomerDetailPage() {
                 onValueChange={(v) => setFilters((f) => ({ ...f, status: v }))}
               >
                 <SelectTrigger className="min-h-9 text-sm">
-                  <SelectValue placeholder="Durum" />
+                  <SelectValue placeholder={t("customerDetail.allStatuses")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tüm Durumlar</SelectItem>
-                  <SelectItem value="active">Aktif</SelectItem>
-                  <SelectItem value="cancelled">İptal Edilmiş</SelectItem>
+                  <SelectItem value="all">{t("customerDetail.allStatuses")}</SelectItem>
+                  <SelectItem value="active">{t("customerDetail.activeStatus")}</SelectItem>
+                  <SelectItem value="cancelled">{t("customerDetail.cancelledStatus")}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -1038,7 +1050,7 @@ export function CustomerDetailPage() {
                     setFilters({ type: "all", assetCode: "all", status: "all", dateFrom: "", dateTo: "" })
                   }
                 >
-                  Filtreleri Temizle
+                  {t("customerDetail.transactions.filtersClear")}
                 </Button>
               </div>
             </div>
@@ -1046,30 +1058,66 @@ export function CustomerDetailPage() {
             {/* Tarih aralığı */}
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">Başlangıç Tarihi</Label>
-                <Input
-                  type="date"
-                  value={filters.dateFrom}
-                  onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-                  className="min-h-9 text-sm"
-                />
+                <Label className="text-xs">{t("customerDetail.transactions.dateFrom")}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal min-h-9 text-sm"
+                    >
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {filters.dateFrom ? format(new Date(filters.dateFrom + "T00:00:00"), "dd MMM yyyy", { locale: i18n.language === "tr" ? tr : enUS }) : t("customerDetail.transactions.selectDate")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateFrom ? new Date(filters.dateFrom + "T00:00:00") : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setFilters((f) => ({ ...f, dateFrom: format(date, "yyyy-MM-dd") }));
+                        }
+                      }}
+                      disabled={(date) => filters.dateTo ? date > new Date(filters.dateTo + "T00:00:00") : false}
+                      locale={i18n.language === "tr" ? tr : enUS}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Bitiş Tarihi</Label>
-                <Input
-                  type="date"
-                  value={filters.dateTo}
-                  onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-                  className="min-h-9 text-sm"
-                />
+                <Label className="text-xs">{t("customerDetail.transactions.dateTo")}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal min-h-9 text-sm"
+                    >
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {filters.dateTo ? format(new Date(filters.dateTo + "T00:00:00"), "dd MMM yyyy", { locale: i18n.language === "tr" ? tr : enUS }) : t("customerDetail.transactions.selectDate")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateTo ? new Date(filters.dateTo + "T00:00:00") : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setFilters((f) => ({ ...f, dateTo: format(date, "yyyy-MM-dd") }));
+                        }
+                      }}
+                      disabled={(date) => filters.dateFrom ? date < new Date(filters.dateFrom + "T00:00:00") : false}
+                      locale={i18n.language === "tr" ? tr : enUS}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
             <DataTable
               columns={txColumns}
               data={filteredTransactions}
-              searchPlaceholder="İşlemlerde ara..."
-              emptyMessage="Filtreyle eşleşen işlem bulunamadı"
+              searchPlaceholder={t("customerDetail.transactions.searchPlaceholder")}
+              emptyMessage={t("customerDetail.transactions.emptyMessage")}
               getRowClassName={(row) =>
                 row.original.isCancelled ? "bg-red-50/50 opacity-75" : ""
               }
@@ -1082,12 +1130,12 @@ export function CustomerDetailPage() {
             columns={[
               {
                 accessorKey: "createdAt",
-                header: "Tarih",
+                header: t("customerDetail.conversionTableColumns.date"),
                 cell: ({ getValue }) => formatDate(getValue<string>()),
               },
               {
                 id: "from",
-                header: "Kaynak",
+                header: t("customerDetail.conversionTableColumns.source"),
                 cell: ({ row }) => {
                   const c = row.original.conversion;
                   return c ? `${c.fromAssetName} — ${formatAmount(c.fromAmount, "Piece")}` : "—";
@@ -1095,7 +1143,7 @@ export function CustomerDetailPage() {
               },
               {
                 id: "tryEq",
-                header: "TL Karşılığı",
+                header: t("customerDetail.conversionTableColumns.trEquivalent"),
                 cell: ({ row }) => {
                   const c = row.original.conversion;
                   return c ? `${c.tryEquivalent.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺` : "—";
@@ -1103,7 +1151,7 @@ export function CustomerDetailPage() {
               },
               {
                 id: "to",
-                header: "Hedef",
+                header: t("customerDetail.conversionTableColumns.target"),
                 cell: ({ row }) => {
                   const c = row.original.conversion;
                   return c ? `${c.toAssetName} — ${formatAmount(c.toAmount, "Piece")}` : "—";
@@ -1111,13 +1159,13 @@ export function CustomerDetailPage() {
               },
               {
                 id: "rate",
-                header: "Kur Kaynağı",
+                header: t("customerDetail.conversionTableColumns.rateSource"),
                 cell: ({ row }) => row.original.conversion?.rateSource ?? "—",
               },
             ]}
             data={conversionTxs}
-            searchPlaceholder="Dönüşümlerde ara..."
-            emptyMessage="Henüz dönüşüm işlemi yapılmamış"
+            searchPlaceholder={t("customerDetail.conversionsTable.searchPlaceholder")}
+            emptyMessage={t("customerDetail.conversionsTable.emptyMessage")}
           />
         )}
       </div>
@@ -1127,19 +1175,19 @@ export function CustomerDetailPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Müşteri Düzenle</DialogTitle>
+            <DialogTitle>{t("customerDetail.form.title")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Ad *</Label>
+                <Label>{t("customerDetail.form.firstNameRequired")}</Label>
                 <Input {...register("firstName")} maxLength={50} />
                 {errors.firstName && (
                   <p className="text-xs text-destructive">{errors.firstName.message}</p>
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label>Soyad *</Label>
+                <Label>{t("customerDetail.form.lastNameRequired")}</Label>
                 <Input {...register("lastName")} maxLength={50} />
                 {errors.lastName && (
                   <p className="text-xs text-destructive">{errors.lastName.message}</p>
@@ -1148,7 +1196,7 @@ export function CustomerDetailPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Müşteri Tipi *</Label>
+              <Label>{t("customerDetail.form.customerTypeRequired")}</Label>
               <Controller
                 control={control}
                 name="type"
@@ -1158,12 +1206,12 @@ export function CustomerDetailPage() {
                     onValueChange={(v) => field.onChange(Number(v))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Tip seçin" />
+                      <SelectValue placeholder={t("customerDetail.form.selectType")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {customerTypes.filter((t) => t.isActive).map((t) => (
-                        <SelectItem key={t.id} value={String(t.value)}>
-                          {t.name}
+                      {customerTypes.filter((ct) => ct.isActive).map((ct) => (
+                        <SelectItem key={ct.id} value={String(ct.value)}>
+                          {formatCustomerType(ct.value, t)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1173,7 +1221,7 @@ export function CustomerDetailPage() {
               {errors.type && <p className="text-xs text-destructive">{errors.type.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label>Telefon</Label>
+              <Label>{t("customerDetail.form.phone")}</Label>
               <Controller
                 control={control}
                 name="phone"
@@ -1190,33 +1238,33 @@ export function CustomerDetailPage() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>TC Kimlik No</Label>
+              <Label>{t("customerDetail.form.nationalId")}</Label>
               <Input {...register("nationalId")} maxLength={11} />
               {errors.nationalId && (
                 <p className="text-xs text-destructive">{errors.nationalId.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>E-posta</Label>
+              <Label>{t("customerDetail.form.email")}</Label>
               <Input type="email" {...register("email")} />
               {errors.email && (
                 <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Adres</Label>
+              <Label>{t("customerDetail.form.address")}</Label>
               <Textarea {...register("address")} rows={2} />
             </div>
             <div className="space-y-1.5">
-              <Label>Notlar</Label>
+              <Label>{t("customerDetail.form.notes")}</Label>
               <Textarea {...register("notes")} rows={2} />
             </div>
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" className="min-h-11" onClick={() => setEditOpen(false)}>
-                İptal
+                {t("customerDetail.form.cancel")}
               </Button>
               <Button type="submit" disabled={saving} className="min-h-11">
-                {saving ? "Kaydediliyor..." : "Kaydet"}
+                {saving ? t("customerDetail.form.saving") : t("customerDetail.form.save")}
               </Button>
             </DialogFooter>
           </form>
@@ -1227,9 +1275,9 @@ export function CustomerDetailPage() {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Müşteri Silinsin mi?"
-        description="Bu müşteri silinecektir. İşlem geri alınamaz."
-        confirmLabel="Sil"
+        title={t("customerDetail.deleteConfirmTitle")}
+        description={t("customerDetail.deleteConfirmDesc")}
+        confirmLabel={t("customerDetail.delete")}
         onConfirm={handleDelete}
         destructive
       />
@@ -1238,9 +1286,9 @@ export function CustomerDetailPage() {
       <ConfirmDialog
         open={deletePhotoOpen}
         onOpenChange={setDeletePhotoOpen}
-        title="Fotoğrafı Kaldır"
-        description="Müşteri fotoğrafını silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
-        confirmLabel="Kaldır"
+        title={t("customerDetail.deletePhotoTitle")}
+        description={t("customerDetail.deletePhotoDesc")}
+        confirmLabel={t("customerDetail.deletePhotoConfirm")}
         onConfirm={executePhotoDelete}
         destructive
       />
@@ -1310,10 +1358,10 @@ export function CustomerDetailPage() {
           setPhoneWarningOpen(open);
           if (!open) setPendingUpdateReq(null);
         }}
-        title="Telefon Numarası Mevcut"
-        description="Bu telefon numarası başka bir müşteride zaten kayıtlı. Yine de güncellemek istediğinize emin misiniz?"
-        confirmLabel="Evet, Güncelle"
-        cancelLabel="İptal"
+        title={t("customerDetail.phoneExistsTitle")}
+        description={t("customerDetail.phoneExistsDesc")}
+        confirmLabel={t("customerDetail.phoneExistsConfirm")}
+        cancelLabel={t("customerDetail.phoneExistsCancel")}
         onConfirm={handlePhoneWarningConfirm}
       />
 
@@ -1321,11 +1369,11 @@ export function CustomerDetailPage() {
       <Dialog open={restoreOpen} onOpenChange={setRestoreOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Müşteriyi Aktif Et</DialogTitle>
+            <DialogTitle>{t("customerDetail.activateTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Müşteriyi yeniden aktif ederken varlık durumunu nasıl ayarlamak istersiniz?
+              {t("customerDetail.activateDescription")}
             </p>
             <div className="space-y-3">
               <label
@@ -1342,8 +1390,8 @@ export function CustomerDetailPage() {
                   className="mt-1"
                 />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Son varlık değerleri kalsın</p>
-                  <p className="text-xs text-muted-foreground">Müşterinin silindiği andaki portföy bakiyeleri aynen korunur.</p>
+                  <p className="text-sm font-medium">{t("customerDetail.activateKeepOption")}</p>
+                  <p className="text-xs text-muted-foreground">{t("customerDetail.activateKeepOptionDesc")}</p>
                 </div>
               </label>
 
@@ -1361,18 +1409,18 @@ export function CustomerDetailPage() {
                   className="mt-1"
                 />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Sıfırlanarak aktif edilsin</p>
-                  <p className="text-xs text-muted-foreground">Müşterinin tüm varlık bakiyeleri sıfırlanır, eski hesapları kapatılır.</p>
+                  <p className="text-sm font-medium">{t("customerDetail.activateResetOption")}</p>
+                  <p className="text-xs text-muted-foreground">{t("customerDetail.activateResetOptionDesc")}</p>
                 </div>
               </label>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRestoreOpen(false)}>
-              İptal
+              {t("customerDetail.activateConfirmCancel")}
             </Button>
             <Button onClick={handleRestoreSelect} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
-              Devam Et
+              {t("customerDetail.activateContinue")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1381,15 +1429,15 @@ export function CustomerDetailPage() {
       <ConfirmDialog
         open={restoreConfirmOpen}
         onOpenChange={setRestoreConfirmOpen}
-        title="İşlemi Onayla"
+        title={t("customerDetail.activateConfirmTitle")}
         description={
           restoreOption === "keep"
-            ? "Müşteri, hesabındaki mevcut bakiyeleriyle birlikte tekrar aktif edilecektir. Onaylıyor musunuz?"
-            : "Müşterinin tüm bakiyeleri sıfırlanacak ve müşteri bu şekilde aktif edilecektir. Bu işlem geri alınamaz. Onaylıyor musunuz?"
+            ? t("customerDetail.activateConfirmDescKeep")
+            : t("customerDetail.activateConfirmDescReset")
         }
         onConfirm={handleRestoreConfirm}
-        confirmLabel="Evet, Aktif Et"
-        cancelLabel="İptal"
+        confirmLabel={t("customerDetail.activateConfirm")}
+        cancelLabel={t("customerDetail.activateConfirmCancel")}
       />
     </div>
   );

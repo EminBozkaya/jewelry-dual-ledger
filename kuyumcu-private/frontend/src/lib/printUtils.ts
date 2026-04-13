@@ -1,7 +1,11 @@
 import type { Balance, Customer } from "@/types";
 import { formatAmount } from "./formatters";
 
-export function printReceipt(customer: Customer, groups: { title: string; items: Balance[] }[]) {
+export function printReceipt(
+  customer: Customer,
+  groups: { title: string; items: Balance[] }[],
+  t: (key: string) => string
+) {
   // Create an iframe to hold the print document
   const iframe = document.createElement("iframe");
   iframe.style.position = "absolute";
@@ -16,7 +20,9 @@ export function printReceipt(customer: Customer, groups: { title: string; items:
     return;
   }
 
-  const currentDate = new Date().toLocaleString("tr-TR", {
+  // Format date based on current language
+  const isLangTr = localStorage.getItem("i18nextLng") === "tr" || localStorage.getItem("i18nextLng") === null;
+  const currentDate = new Date().toLocaleString(isLangTr ? "tr-TR" : "en-US", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -47,7 +53,7 @@ export function printReceipt(customer: Customer, groups: { title: string; items:
     <html>
       <head>
         <meta charset="utf-8">
-        <title>Müşteri Portföy Özeti</title>
+        <title>${t("print.title")}</title>
         <style>
           @page {
             margin: 0;
@@ -79,17 +85,17 @@ export function printReceipt(customer: Customer, groups: { title: string; items:
       </head>
       <body>
         <div class="text-center font-bold mb-2">
-          <h2>CARİ ÖZEL</h2>
-          <div>PORTFÖY ÖZETİ</div>
+          <h2>${t("print.header")}</h2>
+          <div>${t("print.subtitle")}</div>
         </div>
-        
+
         <div class="border-b mb-2">
           <div class="header-info">
-            <span>Tarih:</span>
+            <span>${t("print.dateLabel")}</span>
             <span>${currentDate}</span>
           </div>
           <div class="header-info">
-            <span>Müşteri:</span>
+            <span>${t("print.customerLabel")}</span>
             <span>${customer.firstName} ${customer.lastName}</span>
           </div>
         </div>
@@ -99,7 +105,7 @@ export function printReceipt(customer: Customer, groups: { title: string; items:
         </div>
 
         <div class="border-t text-center pt-2 mb-4">
-          Bizi tercih ettiğiniz için teşekkür ederiz.
+          ${t("print.footer")}
         </div>
 
         <div class="footer-spacer">

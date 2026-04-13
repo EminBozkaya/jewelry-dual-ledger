@@ -111,25 +111,81 @@
   },
   "customerDetail": {
     "loadError": "Müşteri bulunamadı",
-    "updateSuccess": "Güncellendi",
+    "dataLoadError": "Veriler yenilenemedi",
+    "notFound": "Müşteri bulunamadı.",
+    "updateSuccess": "Müşteri güncellendi",
     "updateError": "Güncelleme başarısız",
     "deleteSuccess": "Müşteri silindi",
-    "deleteError": "Silinemedi",
+    "deleteError": "Silme işlemi başarısız",
     "photoUploadSuccess": "Fotoğraf güncellendi",
     "photoUploadError": "Fotoğraf yüklenemedi",
+    "photoFormatError": "Desteklenmeyen dosya formatı. Lütfen JPG, PNG, WebP veya SVG yükleyin.",
+    "photoSizeError": "Dosya 5MB'dan büyük olamaz",
     "photoDeleteSuccess": "Fotoğraf silindi",
     "photoDeleteError": "Fotoğraf silinemedi",
     "cancelSuccess": "İşlem iptal edildi",
     "cancelError": "İptal işlemi başarısız",
+    "activateSuccess": "Müşteri başarıyla aktif edildi",
+    "activateError": "Müşteri aktif edilemedi",
     "editCustomer": "Müşteriyi Düzenle",
     "deleteCustomer": "Müşteriyi Sil",
     "deleteConfirmTitle": "Müşteriyi Sil",
-    "deleteConfirmDesc": "Bu müşteri kalıcı olarak silinecek. Devam etmek istiyor musunuz?",
+    "deleteConfirmDesc": "Bu müşteri silinecektir. İşlem geri alınamaz.",
     "delete": "Sil",
+    "phoneExistsTitle": "Telefon Numarası Mevcut",
+    "phoneExistsDesc": "Bu telefon numarası başka bir müşteride zaten kayıtlı. Yine de güncellemek istediğinize emin misiniz?",
+    "phoneExistsConfirm": "Evet, Güncelle",
+    "phoneExistsCancel": "İptal",
+    "deletePhotoTitle": "Fotoğrafı Kaldır",
+    "deletePhotoDesc": "Müşteri fotoğrafını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+    "deletePhotoConfirm": "Kaldır",
+    "activateTitle": "Müşteriyi Aktif Et",
+    "activateDescription": "Müşteriyi yeniden aktif ederken varlık durumunu nasıl ayarlamak istersiniz?",
+    "activateKeepOption": "Son varlık değerleri kalsın",
+    "activateKeepOptionDesc": "Müşterinin silindiği andaki portföy bakiyeleri aynen korunur.",
+    "activateResetOption": "Sıfırlanarak aktif edilsin",
+    "activateResetOptionDesc": "Müşterinin tüm varlık bakiyeleri sıfırlanır, eski hesapları kapatılır.",
+    "activateContinue": "Devam Et",
+    "activateConfirmTitle": "İşlemi Onayla",
+    "activateConfirmDescKeep": "Müşteri, hesabındaki mevcut bakiyeleriyle birlikte tekrar aktif edilecektir. Onaylıyor musunuz?",
+    "activateConfirmDescReset": "Müşterinin tüm bakiyeleri sıfırlanacak ve müşteri bu şekilde aktif edilecektir. Bu işlem geri alınamaz. Onaylıyor musunuz?",
+    "activateConfirmCancel": "İptal",
+    "activateConfirm": "Evet, Aktif Et",
+    "registrationLabel": "Kayıt:",
+    "viewPhotoLabel": "Orijinal boyutu gör",
+    "portfolio": "Portföy",
+    "printPortfolioLabel": "Portföyü Yazdır (Adisyon)",
+    "allTransactions": "Tüm İşlemler",
+    "deposits": "Yatırma",
+    "withdrawals": "Çekme",
+    "conversions": "Dönüşümler",
+    "allAssets": "Tüm Varlıklar",
+    "allStatuses": "Tüm Durumlar",
+    "activeStatus": "Aktif",
+    "cancelledStatus": "İptal Edilmiş",
+    "conversionTableColumns": {
+      "date": "Tarih",
+      "source": "Kaynak",
+      "trEquivalent": "TL Karşılığı",
+      "target": "Hedef",
+      "rateSource": "Kur Kaynağı"
+    },
     "balances": "Bakiyeler",
     "noBalance": "Bakiye yok",
-    "transactions": "İşlem Geçmişi",
-    "noTransactions": "Henüz işlem yok",
+    "transactions": {
+      "title": "İşlem Geçmişi",
+      "noTransactions": "Henüz işlem yok",
+      "filtersClear": "Filtreleri Temizle",
+      "dateFrom": "Başlangıç Tarihi",
+      "dateTo": "Bitiş Tarihi",
+      "selectDate": "Tarih seçin",
+      "searchPlaceholder": "İşlemlerde ara...",
+      "emptyMessage": "Filtreyle eşleşen işlem bulunamadı"
+    },
+    "conversionsTable": {
+      "searchPlaceholder": "Dönüşümlerde ara...",
+      "emptyMessage": "Henüz dönüşüm işlemi yapılmamış"
+    },
     "deposit": "Yatır",
     "withdrawal": "Çek",
     "conversion": "Dönüştür",
@@ -144,6 +200,11 @@
     "nationalId": "TC Kimlik No",
     "registrationDate": "Kayıt Tarihi",
     "customerType": "Müşteri Tipi",
+    "assetGroups": {
+      "currency": "Döviz",
+      "gold": "Altın",
+      "other": "Diğer"
+    },
     "columns": {
       "date": "Tarih",
       "type": "İşlem Türü",
@@ -160,8 +221,8 @@
     },
     "cancel": {
       "title": "İşlemi İptal Et",
-      "type": "İşlem Türü",
-      "amount": "Miktar",
+      "type": "İşlem Türü:",
+      "amount": "Miktar:",
       "reason": "İptal sebebi",
       "reasonPlaceholder": "Sebebi yazın...",
       "confirm": "İptal Et",
@@ -181,9 +242,14 @@
       "rateLabel": "TL Kuru"
     },
     "form": {
+      "title": "Müşteri Düzenle",
       "firstName": "Ad",
+      "firstNameRequired": "Ad *",
       "lastName": "Soyad",
+      "lastNameRequired": "Soyad *",
       "customerType": "Müşteri Tipi",
+      "customerTypeRequired": "Müşteri Tipi *",
+      "selectType": "Tip seçin",
       "phone": "Telefon",
       "nationalId": "TC Kimlik No",
       "email": "E-posta",
@@ -192,7 +258,33 @@
       "save": "Kaydet",
       "saving": "Kaydediliyor...",
       "cancel": "İptal"
-    }
+    },
+    "buttons": {
+      "edit": "Düzenle",
+      "delete": "Sil",
+      "uploadPhoto": "Güncelle",
+      "removePhoto": "Kaldır",
+      "calculateBalance": "Müşteri Bakiye Hesapla",
+      "deposit": "Yatır",
+      "withdraw": "Çek",
+      "convert": "Dönüştür"
+    },
+    "dateFormat": {
+      "placeholder": "GG.AA.YYYY"
+    },
+    "sections": {
+      "transactionHistory": "İşlem Geçmişi"
+    },
+    "defaultError": "Güncelleme başarısız",
+    "pageDescription": "Müşteri detayı"
+  },
+  "print": {
+    "title": "Müşteri Portföy Özeti",
+    "header": "CARİ ÖZEL",
+    "subtitle": "PORTFÖY ÖZETİ",
+    "dateLabel": "Tarih:",
+    "customerLabel": "Müşteri:",
+    "footer": "Bizi tercih ettiğiniz için teşekkür ederiz."
   },
   "transactions": {
     "title": "İşlemler",
@@ -540,7 +632,10 @@
     "updateError": "Güncelleme başarısız",
     "deleteSuccess": "Silindi",
     "deleteError": "Silinemedi",
-    "toggleError": "İşlem başarısız"
+    "toggleError": "İşlem başarısız",
+    "specialCustomer": "Özel Müşteri",
+    "jeweler": "Kuyumcu",
+    "supplier": "Tedarikçi"
   },
   "common": {
     "confirm": "Onayla",
@@ -557,6 +652,12 @@
     "optional": "İsteğe bağlı...",
     "error": "Hata",
     "success": "Başarılı"
+  },
+  "assetTypeSelect": {
+    "placeholder": "Varlık birimi seçin...",
+    "searchPlaceholder": "Ara...",
+    "noResults": "Sonuç bulunamadı",
+    "insufficientBalance": "Yetersiz"
   },
   "deposit": {
     "title": "Yatırma İşlemi",
@@ -670,5 +771,18 @@
     "deposit": "Yatırma",
     "withdrawal": "Çekme",
     "conversion": "Dönüşüm"
+  },
+  "rates": {
+    "ratesUpdated": "Tüm kurlar Merkez Bankası verisiyle güncellendi.",
+    "partialUpdate": "{{count}} kur güncellendi. Manuel girilmesi gereken: {{skipped}}",
+    "fetchError": "Kurlar alınamadı. Lütfen tekrar deneyin."
+  },
+  "validation": {
+    "rateRequired": "Kur girilmeli"
+  },
+  "api": {
+    "unauthorized": "Bu işlem için yetkiniz yok.",
+    "serverError": "Sunucu hatası. Lütfen tekrar deneyin.",
+    "networkError": "Bağlantı hatası. İnternet bağlantınızı kontrol edin."
   }
 }

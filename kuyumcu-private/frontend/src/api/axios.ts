@@ -1,5 +1,6 @@
 import axios from "axios";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 
 const api = axios.create({
   baseURL: "/api",
@@ -27,17 +28,17 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 403) {
-      toast.error("Bu işlem için yetkiniz yok.");
+      toast.error(i18n.t("api.unauthorized"));
       return Promise.reject(error);
     }
 
     if (error.response?.status >= 500) {
-      toast.error("Sunucu hatası. Lütfen tekrar deneyin.");
+      toast.error(i18n.t("api.serverError"));
       return Promise.reject(error);
     }
 
     if (!error.response) {
-      toast.error("Bağlantı hatası. İnternet bağlantınızı kontrol edin.");
+      toast.error(i18n.t("api.networkError"));
     }
 
     return Promise.reject(error);

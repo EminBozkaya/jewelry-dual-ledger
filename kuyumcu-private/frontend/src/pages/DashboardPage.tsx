@@ -18,10 +18,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { dashboardApi, type DashboardSummary } from "@/api/dashboard";
 import { reportApi } from "@/api/reports";
-import { assetTypeApi } from "@/api/asset-types";
-import type { Transaction, PortfolioAsset, AssetType, Balance } from "@/types";
+import type { Transaction, PortfolioAsset } from "@/types";
 import { formatDate, formatTransactionType } from "@/lib/formatters";
-import { OzetBakiyeModal } from "@/components/shared/OzetBakiyeModal";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { AmountDisplay } from "@/components/shared/AmountDisplay";
@@ -68,7 +66,7 @@ function SummaryCard({
     <Card className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 bg-card/60 dark:bg-card/40 backdrop-blur-xl border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10"
           style={{ 
             borderTop: `2px solid ${accent}`,
-            boxShadow: `0 4px 6px -1px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.05), 0 8px 30px -4px color-mix(in srgb, ${accent} 25%, transparent)`
+            boxShadow: `0 4px 6px -1px rgba(0,0,0,0.05),  0 10px 15px -3px rgba(0,0,0,0.05),  0 8px 30px -4px color-mix(in srgb,  ${accent} 25%,  transparent)`
           }}>
       {/* Subtle glow background */}
       <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.2] dark:opacity-[0.06] blur-2xl rounded-full -translate-y-1/2 translate-x-1/3 group-hover:opacity-[0.3] dark:group-hover:opacity-[0.1] transition-opacity duration-300"
@@ -79,7 +77,7 @@ function SummaryCard({
           {title}
         </CardTitle>
         <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-inner transition-transform duration-300 group-hover:scale-110"
-             style={{ background: `color-mix(in srgb, ${accent} 15%, transparent)`, border: `1px solid color-mix(in srgb, ${accent} 30%, transparent)` }}>
+             style={{ background: `color-mix(in srgb,  ${accent} 15%,  transparent)`,  border: `1px solid color-mix(in srgb,  ${accent} 30%,  transparent)` }}>
           <Icon className="h-5 w-5" style={{ color: accent }} />
         </div>
       </CardHeader>
@@ -175,8 +173,8 @@ function PortfolioGroupSection({ group }: { group: AssetGroup }) {
         <div
           className="flex h-6 w-6 items-center justify-center rounded-md"
           style={{
-            background: `color-mix(in srgb, ${group.accentColor} 12%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${group.accentColor} 20%, transparent)`,
+            background: `color-mix(in srgb,  ${group.accentColor} 12%,  transparent)`,
+            border: `1px solid color-mix(in srgb,  ${group.accentColor} 20%,  transparent)`,
           }}
         >
           <Icon className="h-3.5 w-3.5" style={{ color: group.accentColor }} />
@@ -252,13 +250,6 @@ export function DashboardPage() {
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
   const [portfolioLoading, setPortfolioLoading] = useState(true);
 
-  const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
-  const [ozetOpen, setOzetOpen] = useState(false);
-
-  useEffect(() => {
-    assetTypeApi.getAll().then(list => setAssetTypes(list.filter(a => a.isActive))).catch(() => {});
-  }, []);
-
   useEffect(() => {
     setLoading(true);
     dashboardApi
@@ -283,14 +274,6 @@ export function DashboardPage() {
   const groups = groupPortfolioAssets(portfolio, t);
   const recentColumns = buildRecentColumns(t);
   const locale = i18n.language === "tr" ? "tr-TR" : "en-GB";
-
-  const portfolioBalances = portfolio.map((p): Balance => ({
-    assetTypeId: p.assetTypeId,
-    assetTypeCode: p.assetTypeCode,
-    assetTypeName: p.assetTypeName,
-    unitType: p.unitType,
-    amount: p.netAmount,
-  }));
 
   return (
     <div className="space-y-6">
@@ -336,7 +319,7 @@ export function DashboardPage() {
           />
           <SummaryCard
             title={t("dashboard.date")}
-            value={today.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })}
+            value={today.toLocaleDateString(locale, { day: "numeric",  month: "long",  year: "numeric" })}
             icon={CalendarDays}
             accentColor="#c084fc"
             loading={false}
@@ -387,34 +370,6 @@ export function DashboardPage() {
               ))}
             </div>
           )}
-          
-          {portfolio.length > 0 && !portfolioLoading && (
-            <div className="mt-2 p-5 border-t border-black/[0.03] dark:border-white/[0.03] flex justify-center">
-              <button
-                onClick={() => setOzetOpen(true)}
-                className="group flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300"
-                style={{
-                  color: "var(--color-gold)",
-                  background: "rgba(212,164,55,0.06)",
-                  border: "1px solid rgba(212,164,55,0.3)",
-                  boxShadow: "0 0 0 1px rgba(212,164,55,0.15), 0 2px 8px rgba(212,164,55,0.12), inset 0 1px 0 rgba(245,209,110,0.15)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(212,164,55,0.12)";
-                  e.currentTarget.style.borderColor = "rgba(212,164,55,0.6)";
-                  e.currentTarget.style.boxShadow = "0 0 0 1px rgba(212,164,55,0.4), 0 4px 16px rgba(212,164,55,0.3), 0 0 28px rgba(212,164,55,0.15), inset 0 1px 0 rgba(245,209,110,0.25)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(212,164,55,0.06)";
-                  e.currentTarget.style.borderColor = "rgba(212,164,55,0.3)";
-                  e.currentTarget.style.boxShadow = "0 0 0 1px rgba(212,164,55,0.15), 0 2px 8px rgba(212,164,55,0.12), inset 0 1px 0 rgba(245,209,110,0.15)";
-                }}
-              >
-                <span style={{ fontSize: "1rem", lineHeight: 1 }}>₺</span>
-                {t("dashboard.calculateGeneralBalance") || "Mağaza Bakiye Hesapla"}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -440,13 +395,6 @@ export function DashboardPage() {
           />
         </div>
       </div>
-
-      <OzetBakiyeModal
-        open={ozetOpen}
-        onOpenChange={setOzetOpen}
-        balances={portfolioBalances}
-        assetTypes={assetTypes}
-      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, Fragment } from "react";
 import { ChevronsUpDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import type { AssetType } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -36,9 +37,9 @@ function groupAssets(assets: AssetType[]) {
   const altin = assets.filter((a) => a.unitType !== "Currency" && a.karat != null);
   const diger = assets.filter((a) => a.unitType !== "Currency" && a.karat == null);
   return [
-    { label: "Döviz", items: doviz },
-    { label: "Altın", items: altin },
-    { label: "Diğer", items: diger },
+    { labelKey: "currency", items: doviz },
+    { labelKey: "gold", items: altin },
+    { labelKey: "other", items: diger },
   ].filter((g) => g.items.length > 0);
 }
 
@@ -50,9 +51,11 @@ export function AssetTypeSelect({
   disabledIds = [],
   label,
   error,
-  placeholder = "Varlık birimi seçin...",
+  placeholder,
 }: AssetTypeSelectProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const defaultPlaceholder = t("assetTypeSelect.placeholder");
 
   // Hariç tutulanları çıkar
   const available = assetTypes.filter((a) => !exclude.includes(a.id));
@@ -81,21 +84,21 @@ export function AssetTypeSelect({
                 {selected.name}
               </span>
             ) : (
-              <span className="text-muted-foreground">{placeholder}</span>
+              <span className="text-muted-foreground">{placeholder || defaultPlaceholder}</span>
             )}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[320px] p-0" align="start">
           <Command>
-            <CommandInput placeholder="Ara..." />
+            <CommandInput placeholder={t("assetTypeSelect.searchPlaceholder")} />
             <CommandList>
-              <CommandEmpty>Sonuç bulunamadı.</CommandEmpty>
+              <CommandEmpty>{t("assetTypeSelect.noResults")}</CommandEmpty>
 
               {groups.map((g, gi) => (
-                <Fragment key={g.label}>
+                <Fragment key={g.labelKey}>
                   {gi > 0 && <CommandSeparator />}
-                  <CommandGroup heading={g.label}>
+                  <CommandGroup heading={t(`customerDetail.assetGroups.${g.labelKey}`)}>
                     {g.items.map((a) => {
                       const isDisabled = disabledIds.includes(a.id);
                       return (
@@ -115,7 +118,7 @@ export function AssetTypeSelect({
                           <span className="font-medium w-16 shrink-0">{a.code}</span>
                           <span className="text-muted-foreground">{a.name}</span>
                           {isDisabled && (
-                            <span className="ml-auto text-xs text-muted-foreground">Yetersiz</span>
+                            <span className="ml-auto text-xs text-muted-foreground">{t("assetTypeSelect.insufficientBalance")}</span>
                           )}
                         </CommandItem>
                       );

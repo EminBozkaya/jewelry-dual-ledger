@@ -58,7 +58,7 @@ function buildColumns(navigate: (path: string) => void, t: TFunction): ColumnDef
         };
         return (
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${map[type] ?? "bg-muted text-muted-foreground"}`}>
-            {formatTransactionType(type)}
+            {formatTransactionType(type, t)}
           </span>
         );
       },
