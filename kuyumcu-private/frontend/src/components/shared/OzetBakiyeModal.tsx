@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +18,7 @@ export function OzetBakiyeModal({
   balances: Balance[];
   assetTypes: AssetType[];
 }) {
+  const { t } = useTranslation();
   const [rates, setRates] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [result, setResult] = useState<number | null>(null);
@@ -122,9 +124,9 @@ export function OzetBakiyeModal({
 
   const assetMap = new Map(assetTypes.map((a) => [a.id, a]));
   const groups = [
-    { title: "Döviz", items: balances.filter((b) => b.unitType === "Currency") },
-    { title: "Altın", items: balances.filter((b) => b.unitType !== "Currency" && assetMap.get(b.assetTypeId)?.karat != null) },
-    { title: "Diğer", items: balances.filter((b) => b.unitType !== "Currency" && assetMap.get(b.assetTypeId)?.karat == null) },
+    { titleKey: "currency", items: balances.filter((b) => b.unitType === "Currency") },
+    { titleKey: "gold", items: balances.filter((b) => b.unitType !== "Currency" && assetMap.get(b.assetTypeId)?.karat != null) },
+    { titleKey: "other", items: balances.filter((b) => b.unitType !== "Currency" && assetMap.get(b.assetTypeId)?.karat == null) },
   ].filter((g) => g.items.length > 0);
 
   const handleCalculate = () => {
@@ -154,22 +156,22 @@ export function OzetBakiyeModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Genel Bakiye Hesapla</DialogTitle>
+          <DialogTitle>{t("customerDetail.ozetBakiye.title")}</DialogTitle>
         </DialogHeader>
 
         {/* Tablo başlığı */}
         <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 text-xs font-semibold text-muted-foreground border-b pb-2">
-          <span>Varlık</span>
-          <span className="text-right w-24">Miktar</span>
-          <span className="text-right w-24">TL Kuru</span>
+          <span>{t("modal.assetName")}</span>
+          <span className="text-right w-24">{t("modal.amount")}</span>
+          <span className="text-right w-24">{t("modal.rate")}</span>
         </div>
 
         {/* Gruplar */}
         <div className="space-y-4">
           {groups.map((g) => (
-            <div key={g.title}>
+            <div key={g.titleKey}>
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-1.5">
-                {g.title}
+                {t(`modal.${g.titleKey}`)}
               </p>
               <div className="space-y-1">
                 {g.items.map((b) => {
@@ -208,7 +210,7 @@ export function OzetBakiyeModal({
         {/* Sonuç */}
         {result !== null && (
           <div className={`flex items-center justify-between rounded-lg px-4 py-3 mt-1 ${result >= 0 ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
-            <span className="text-sm font-medium text-muted-foreground">Toplam TL Karşılığı</span>
+            <span className="text-sm font-medium text-muted-foreground">{t("modal.totalTryEquivalent")}</span>
             <span
               className={`text-lg font-bold tabular-nums ${result >= 0 ? "text-green-600" : "text-red-600"}`}
               style={{ textShadow: result >= 0 ? "0 0 10px rgba(22,163,74,0.3)" : "0 0 10px rgba(220,38,38,0.3)" }}
@@ -228,11 +230,15 @@ export function OzetBakiyeModal({
             {/* Mağaza Kurları */}
             <div className="rounded-lg border bg-muted/20 p-3 flex flex-col gap-2.5 opacity-50 select-none">
               <p className="text-xs font-semibold text-center text-muted-foreground tracking-wide">
-                Mağaza Kurları
+                {t("customerDetail.ozetBakiye.storeRateType")}
               </p>
               <div className="space-y-1.5">
                 {(["Buying", "Average", "Selling"] as const).map((type) => {
-                  const labels: Record<string, string> = { Buying: "Alış Kuru", Average: "Ortalama", Selling: "Satış Kuru" };
+                  const labels: Record<string, string> = {
+                    Buying: t("customerDetail.ozetBakiye.buying"),
+                    Average: t("customerDetail.ozetBakiye.average"),
+                    Selling: t("customerDetail.ozetBakiye.selling")
+                  };
                   const active = magzaRateType === type;
                   return (
                     <label key={type} onClick={() => setMagzaRateType(type)} className="flex items-center gap-2 cursor-not-allowed">
@@ -247,18 +253,22 @@ export function OzetBakiyeModal({
                 })}
               </div>
               <Button size="sm" variant="outline" disabled className="w-full h-7 text-xs mt-0.5">
-                Çek
+                {t("modal.fetch")}
               </Button>
             </div>
 
             {/* Merkez Bankası Kurları */}
             <div className="rounded-lg border bg-muted/20 p-3 flex flex-col gap-2.5">
               <p className="text-xs font-semibold text-center text-foreground tracking-wide">
-                Merkez Bankası
+                {t("modal.centralBankRates")}
               </p>
               <div className="space-y-1.5">
                 {(["Buying", "Average", "Selling"] as const).map((type) => {
-                  const labels: Record<string, string> = { Buying: "Alış Kuru", Average: "Ortalama", Selling: "Satış Kuru" };
+                  const labels: Record<string, string> = {
+                    Buying: t("customerDetail.ozetBakiye.buying"),
+                    Average: t("customerDetail.ozetBakiye.average"),
+                    Selling: t("customerDetail.ozetBakiye.selling")
+                  };
                   const active = rateType === type;
                   return (
                     <label
@@ -283,7 +293,7 @@ export function OzetBakiyeModal({
                 disabled={loadingTcmb}
                 className="w-full h-7 text-xs mt-0.5 hover:text-foreground"
               >
-                {loadingTcmb ? "Yükleniyor..." : "Çek"}
+                {loadingTcmb ? t("modal.fetching") : t("modal.fetch")}
               </Button>
             </div>
           </div>
@@ -291,10 +301,10 @@ export function OzetBakiyeModal({
           {/* Kapat / Hesapla — ortalanmış */}
           <div className="flex justify-center gap-3">
             <Button variant="outline" onClick={() => onOpenChange(false)} className="min-h-10 px-8">
-              Kapat
+              {t("modal.close")}
             </Button>
             <Button onClick={handleCalculate} className="min-h-10 px-8">
-              Hesapla
+              {t("modal.calculate")}
             </Button>
           </div>
 

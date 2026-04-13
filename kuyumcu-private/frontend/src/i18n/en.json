@@ -59,7 +59,8 @@
     "recentTransactionsSubtitle": "Latest movements in the system",
     "searchTransactions": "Search transactions...",
     "noTransactions": "No transactions yet",
-    "loadError": "Failed to load dashboard data"
+    "loadError": "Failed to load dashboard data",
+    "calculateGeneralBalance": "Calculate Store Balance"
   },
   "customers": {
     "title": "Customers",
@@ -106,6 +107,11 @@
       "name": "Full Name",
       "phone": "Phone",
       "registrationDate": "Registration Date"
+    },
+    "filter": {
+      "active": "Active",
+      "deleted": "Deleted",
+      "all": "All"
     }
   },
   "customerDetail": {
@@ -167,7 +173,7 @@
       "back": "Go Back"
     },
     "ozetBakiye": {
-      "title": "Balance Summary (TRY)",
+      "title": "Calculate General Balance",
       "rateType": "Rate Type",
       "buying": "Buying",
       "selling": "Selling",
@@ -556,6 +562,30 @@
     "optional": "Optional...",
     "error": "Error",
     "success": "Success"
+  },
+  "modal": {
+    "generalBalance": "Calculate General Balance",
+    "assetName": "Asset",
+    "amount": "Amount",
+    "rate": "TRY Rate",
+    "currency": "Currency",
+    "gold": "Gold",
+    "other": "Other",
+    "storeRates": "Store Rates",
+    "centralBankRates": "Central Bank",
+    "buyingRate": "Buying Rate",
+    "sellingRate": "Selling Rate",
+    "averageRate": "Average",
+    "fetch": "Fetch",
+    "fetching": "Fetching...",
+    "close": "Close",
+    "calculate": "Calculate",
+    "totalTryEquivalent": "Total TRY Equivalent"
+  },
+  "datatable": {
+    "pageSize": "Page size:",
+    "paginationInfo": "of",
+    "recordsShown": "showing"
   },
   "deposit": {
     "title": "Deposit",

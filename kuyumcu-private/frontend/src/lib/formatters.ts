@@ -52,25 +52,22 @@ export function formatDateShort(date: string | Date): string {
   return format(new Date(date), "dd.MM.yyyy", { locale: tr });
 }
 
-/** İşlem tipi Türkçe karşılık */
-export function formatTransactionType(type: string): string {
-  const map: Record<string, string> = {
+/** İşlem tipi çevirisi (i18n destekli) */
+export function formatTransactionType(type: string, t?: (key: string) => string): string {
+  const fallbackMap: Record<string, string> = {
     Deposit: "Yatırma",
     Withdrawal: "Çekme",
     Conversion: "Dönüşüm",
   };
-  return map[type] ?? type;
-}
 
-/** Müşteri tipi Türkçe karşılık */
-export function formatCustomerType(type: number | string): string {
-  const map: Record<string | number, string> = {
-    0: "Özel Müşteri",
-    1: "Kuyumcu",
-    2: "Tedarikçi",
-    "Standard": "Özel Müşteri",
-    "Jeweler": "Kuyumcu",
-    "Supplier": "Tedarikçi"
-  };
-  return map[type] ?? "Bilinmeyen";
+  if (t) {
+    const tMap: Record<string, string> = {
+      Deposit: t("formatters.deposit"),
+      Withdrawal: t("formatters.withdrawal"),
+      Conversion: t("formatters.conversion"),
+    };
+    return tMap[type] ?? type;
+  }
+
+  return fallbackMap[type] ?? type;
 }

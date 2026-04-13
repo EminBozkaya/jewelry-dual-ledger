@@ -32,6 +32,7 @@ import { DataTable } from "@/components/shared/DataTable";
 
 // ── İşlem tipi badge ─────────────────────────────────────────
 function TxTypeBadge({ type }: { type: string }) {
+  const { t } = useTranslation();
   const map: Record<string, { bg: string; text: string }> = {
     Deposit: { bg: "rgba(74, 222, 128, 0.1)", text: "#4ade80" },
     Withdrawal: { bg: "rgba(248, 113, 113, 0.1)", text: "#f87171" },
@@ -43,7 +44,7 @@ function TxTypeBadge({ type }: { type: string }) {
       className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
       style={{ background: colors.bg, color: colors.text }}
     >
-      {formatTransactionType(type)}
+      {formatTransactionType(type, t)}
     </span>
   );
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Users } from "lucide-react";
 import type { CustomerTypeConfig } from "@/types";
@@ -15,6 +16,8 @@ export function CustomerTypeFilter({
   onChange,
   className,
 }: CustomerTypeFilterProps) {
+  const { t } = useTranslation();
+
   const handleToggle = (value: number) => {
     if (selectedTypes.includes(value)) {
       onChange(selectedTypes.filter((t) => t !== value));
@@ -37,7 +40,7 @@ export function CustomerTypeFilter({
         )}
       >
         <Users className={cn("h-3.5 w-3.5", isAllSelected ? "text-primary" : "text-muted-foreground")} />
-        Tümü
+        {t("customers.filter.all")}
         {isAllSelected && (
           <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
         )}

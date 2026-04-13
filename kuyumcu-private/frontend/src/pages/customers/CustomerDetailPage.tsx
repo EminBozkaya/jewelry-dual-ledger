@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Pencil, Trash2, Upload, Banknote, ArrowUpFromLine, RefreshCw, Printer } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -213,6 +214,7 @@ export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -661,7 +663,7 @@ export function CustomerDetailPage() {
             {customer.fullName}
             {customer.isDeleted && (
               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-destructive/10 text-destructive border border-destructive/20">
-                Silinmiş
+                {t("customers.filter.deleted")}
               </span>
             )}
           </div>

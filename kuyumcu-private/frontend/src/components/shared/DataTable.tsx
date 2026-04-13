@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   flexRender,
   getCoreRowModel,
@@ -62,6 +63,7 @@ export function DataTable<TData>({
   getRowClassName,
   headerActions,
 }: DataTableProps<TData>) {
+  const { t } = useTranslation();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
@@ -197,11 +199,11 @@ export function DataTable<TData>({
       {/* Sayfalama */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          {filteredRows.length} kayıttan {from}–{to} arası gösteriliyor
+          {filteredRows.length} {t("datatable.recordsShown")} {from}–{to}
         </p>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Sayfa başı:</span>
+            <span className="text-sm text-muted-foreground">{t("datatable.pageSize")}</span>
             <Select
               value={String(table.getState().pagination.pageSize)}
               onValueChange={(v) => table.setPageSize(Number(v))}
