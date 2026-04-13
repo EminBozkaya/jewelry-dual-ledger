@@ -36,3 +36,16 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/eminbozkaya/jewelery-dual-ledger:test
+
+      - name: Deploy to Oracle VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: opc
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            cd ~/apps/kuyumcu/test
+            podman pull ghcr.io/eminbozkaya/jewelery-dual-ledger:test
+            podman stop kuyumcu-test-api || true
+            podman rm kuyumcu-test-api || true
+            podman-compose up -d
