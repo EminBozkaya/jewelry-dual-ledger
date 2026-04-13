@@ -442,31 +442,6 @@ namespace KuyumcuPrivate.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("KuyumcuPrivate.Domain.Entities.StoreRate", b =>
-                {
-                    b.Property<string>("Code")
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("BuyingRate")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("numeric(18,6)");
-
-                    b.Property<decimal?>("SellingRate")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("numeric(18,6)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Code");
-
-                    b.ToTable("StoreRates");
-                });
-
             modelBuilder.Entity("KuyumcuPrivate.Domain.Entities.Transaction", b =>
                 {
                     b.Property<Guid>("Id")

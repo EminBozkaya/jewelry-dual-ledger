@@ -13,7 +13,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Balance> Balances => Set<Balance>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Conversion> Conversions => Set<Conversion>();
-    public DbSet<StoreRate>  StoreRates  => Set<StoreRate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -84,14 +83,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(x => x.Id);
             e.HasIndex(x => x.Value).IsUnique();
-        });
-
-        // StoreRate — Code is the primary key
-        modelBuilder.Entity<StoreRate>(e =>
-        {
-            e.HasKey(x => x.Code);
-            e.Property(x => x.BuyingRate).HasPrecision(18, 6);
-            e.Property(x => x.SellingRate).HasPrecision(18, 6);
         });
 
         // Seed: Varsayılan varlık birimleri ve müşteri tipleri
