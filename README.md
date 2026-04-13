@@ -18,7 +18,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 
 </div>
 
@@ -321,10 +321,6 @@ Katkılarınızı memnuniyetle karşılıyoruz! Lütfen:
 3. Değişikliklerinizi commit edin (`git commit -m 'feat: add amazing feature'`)
 4. Branch'i push edin (`git push origin feature/amazing-feature`)
 5. Pull Request açın
-
-## 📜 Lisans
-
-Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır.
 
 ---
 
