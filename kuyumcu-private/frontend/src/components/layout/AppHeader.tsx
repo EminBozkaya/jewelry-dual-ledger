@@ -1,4 +1,5 @@
 import { Sun, Moon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -12,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
 import { BreadcrumbNav } from "./BreadcrumbNav";
 
 const TrFlag = ({ className = "" }: { className?: string }) => (
@@ -45,6 +47,23 @@ export function AppHeader() {
   const { user, isAdmin } = useAuth();
   const { isDark, toggle } = useDarkMode();
   const { t, i18n } = useTranslation();
+  const [showThemeTooltip, setShowThemeTooltip] = useState(false);
+
+  useEffect(() => {
+    // Show the theme tooltip after a short delay if the user hasn't seen it yet
+    const hasSeen = localStorage.getItem("hasSeenThemeTooltip");
+    if (!hasSeen) {
+      const timer = setTimeout(() => {
+        setShowThemeTooltip(true);
+      }, 1500); // 1.5 second delay for a smooth entrance
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleDismissThemeTooltip = () => {
+    setShowThemeTooltip(false);
+    localStorage.setItem("hasSeenThemeTooltip", "true");
+  };
 
   const currentLang = i18n.language;
 
@@ -106,21 +125,68 @@ export function AppHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Dark mode toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggle}
-              className="text-muted-foreground hover:text-foreground transition-transform hover:scale-105 active:scale-95"
-              aria-label={isDark ? t("header.switchToLight") : t("header.switchToDark")}
-            >
-              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{isDark ? t("header.lightMode") : t("header.darkMode")}</TooltipContent>
-        </Tooltip>
+        {/* Dark mode toggle with Onboarding Tooltip */}
+        <Popover open={showThemeTooltip} onOpenChange={(open) => {
+          if (!open) handleDismissThemeTooltip();
+          setShowThemeTooltip(open);
+        }}>
+          <PopoverAnchor asChild>
+            <div className="flex items-center justify-center">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      toggle();
+                      handleDismissThemeTooltip();
+                    }}
+                    className="text-muted-foreground hover:text-foreground transition-transform hover:scale-105 active:scale-95"
+                    aria-label={isDark ? t("header.switchToLight") : t("header.switchToDark")}
+                  >
+                    {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isDark ? t("header.lightMode") : t("header.darkMode")}</TooltipContent>
+              </Tooltip>
+            </div>
+          </PopoverAnchor>
+          
+          <PopoverContent 
+            side="bottom" 
+            align="end" 
+            sideOffset={14}
+            className="w-72 p-4 rounded-xl shadow-2xl bg-foreground text-background border-none ring-1 ring-white/10"
+          >
+            {/* Custom upward-pointing arrow */}
+            <div className="absolute -top-2 right-[18px] w-4 h-4 bg-foreground rotate-45 rounded-sm" />
+            
+            <div className="relative z-10 flex flex-col gap-2">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">💡</span>
+                <h4 className="font-semibold tracking-tight text-sm">Tema Seçimi / Theme</h4>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[13px] text-background/90 leading-relaxed font-medium">
+                  Buradaki buton vasıtasıyla gündüz moduna geçiş yapabilir, gözünüze en uygun deneyimi seçebilirsiniz.
+                </p>
+                <p className="text-[11px] text-background/70 leading-relaxed italic">
+                  You can switch to light mode using this button and choose the best experience for your eyes.
+                </p>
+              </div>
+              <div className="flex justify-end mt-2">
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={handleDismissThemeTooltip}
+                  className="h-8 text-xs px-4"
+                >
+                  Tamam / Got it
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* User info — compact badge */}
         <div className="flex items-center gap-2 rounded-full px-3 py-1.5 border hover:bg-muted/50 transition-colors"
