@@ -107,6 +107,11 @@
       "name": "Ad Soyad",
       "phone": "Telefon",
       "registrationDate": "Kayıt Tarihi"
+    },
+    "filter": {
+      "active": "Aktif",
+      "deleted": "Silinmiş",
+      "all": "Tümü"
     }
   },
   "customerDetail": {
@@ -779,6 +784,10 @@
   },
   "validation": {
     "rateRequired": "Kur girilmeli"
+  },
+  "datatable": {
+    "pageSize": "Sayfa boyutu",
+    "recordsShown": "kayıt gösteriliyor"
   },
   "api": {
     "unauthorized": "Bu işlem için yetkiniz yok.",
