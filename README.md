@@ -26,9 +26,30 @@
 
 ## 📋 Proje Hakkında
 
-**Jewelry Dual Ledger**, kuyumcu işletmeleri için tasarlanmış, profesyonel düzeyde bir **müşteri cari hesap takip sistemidir**. Müşterilerin altın (gram ve adet), döviz (TRY, USD, EUR, GBP, SAR) ve kıymetli metal bakiyelerini dijital ortamda güvenli şekilde yönetmenizi sağlar.
+**Jewelry Dual Ledger**, kuyumcu işletmeleri için tasarlanmış, profesyonel düzeyde bir **çift defterli yönetim sistemidir**. Projenin adındaki "Dual" (çift), kuyumcu işletmelerinin ihtiyaç duyduğu iki temel yönetim alanını ifade eder:
 
-Sistem, **özel cari defteri** (private ledger) kavramını temel alır — kuyumcuların geleneksel olarak kağıt defter üzerinde tuttuğu müşteri hesaplarını modern ve güvenli bir dijital platforma taşır.
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 📗 Modül 1 — Özel Cari Defter&ensp;✅
+**Müşteri hesap takibi.** Müşterilerin altın (gram ve adet), döviz ve kıymetli metal bakiyelerini kayıt altına alma, yatırma/çekme/dönüşüm işlemleri yapma ve detaylı raporlar üretme.
+
+> **Durum:** Tamamlandı ve aktif kullanımda.
+
+</td>
+<td width="50%" valign="top">
+
+### 📘 Modül 2 — Günlük İşlem Defteri&ensp;🚧
+**Mağaza operasyonları.** Kuyumcu işletmesinin gün içinde gerçekleştirdiği satış, alış ve çevirim işlemlerinin anlık takibi; kasa yönetimi, stok hareketleri ve gün sonu mutabakatı.
+
+> **Durum:** Yakında geliştirmeye başlanacak.
+
+</td>
+</tr>
+</table>
+
+Bu iki modül birlikte, bir kuyumcu işletmesinin hem **müşteri ilişkileri** hem de **günlük operasyonları** için eksiksiz bir dijital yönetim platformu oluşturacaktır. Şu an bu repo'da **Modül 1 (Özel Cari Defter)** tam olarak işlevseldir.
 
 ### 🎯 Neden Bu Proje?
 
@@ -275,12 +296,18 @@ http://localhost:5000/swagger
 
 ## 🗺️ Yol Haritası
 
+### 📘 Modül 2 — Günlük İşlem Defteri *(Öncelikli)*
+- [ ] Günlük satış ve alış kayıtları
+- [ ] Kasa yönetimi (nakit, altın, döviz kasası)
+- [ ] Stok hareketleri takibi
+- [ ] Gün sonu mutabakatı ve kapanış raporu
+- [ ] İşletme kâr/zarar analizi
+
+### 🔧 Genel İyileştirmeler
 - [ ] Otomatik kur çekme zamanlayıcısı
 - [ ] Offline destek (Service Worker)
 - [ ] Bildirim sistemi
 - [ ] Yedekleme ve geri yükleme
-- [ ] Resmi defter (official ledger) modülü
-- [ ] Raporlama köprüsü (reporting bridge)
 - [ ] PWA ikonları
 
 ---

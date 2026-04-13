@@ -26,9 +26,30 @@
 
 ## 📋 About
 
-**Jewelry Dual Ledger** is a professional-grade **customer account tracking system** designed for jewelry retail businesses. It enables secure digital management of customer balances across gold (gram and pieces), foreign currencies (TRY, USD, EUR, GBP, SAR), and precious metals.
+**Jewelry Dual Ledger** is a professional-grade **dual-ledger management system** designed for jewelry retail businesses. The "Dual" in the project name refers to the two core management areas that every jewelry business needs:
 
-The system is based on the **private ledger** concept — digitizing the traditional paper-based customer account books that jewelers have relied on for generations into a modern, secure platform.
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 📗 Module 1 — Private Ledger&ensp;✅
+**Customer account tracking.** Record and manage customer balances across gold (gram and pieces), foreign currencies, and precious metals. Handle deposits, withdrawals, conversions, and generate detailed reports.
+
+> **Status:** Complete and in active use.
+
+</td>
+<td width="50%" valign="top">
+
+### 📘 Module 2 — Operations Ledger&ensp;🚧
+**Daily store operations.** Real-time tracking of the jewelry store's daily sales, purchases, and conversion transactions; cash register management, inventory movements, and end-of-day reconciliation.
+
+> **Status:** Development starting soon.
+
+</td>
+</tr>
+</table>
+
+Together, these two modules will form a complete digital management platform for a jewelry business — covering both **customer relations** and **daily operations**. Currently, this repository contains the fully functional **Module 1 (Private Ledger)**.
 
 ### 🎯 Why This Project?
 
@@ -275,12 +296,18 @@ http://localhost:5000/swagger
 
 ## 🗺️ Roadmap
 
+### 📘 Module 2 — Operations Ledger *(Priority)*
+- [ ] Daily sales and purchase records
+- [ ] Cash register management (cash, gold, foreign currency registers)
+- [ ] Inventory movement tracking
+- [ ] End-of-day reconciliation and closing reports
+- [ ] Business profit/loss analysis
+
+### 🔧 General Improvements
 - [ ] Automatic exchange rate polling scheduler
 - [ ] Offline support (Service Worker)
 - [ ] Notification system
 - [ ] Backup and restore
-- [ ] Official ledger module
-- [ ] Reporting bridge
 - [ ] PWA icons
 
 ---
