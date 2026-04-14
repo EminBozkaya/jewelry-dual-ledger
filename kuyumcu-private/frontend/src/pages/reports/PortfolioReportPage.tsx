@@ -53,7 +53,6 @@ function groupPortfolioAssets(assets: PortfolioAsset[], t: TFunction): AssetGrou
 }
 
 function PortfolioRow({ asset, onClick }: { asset: PortfolioAsset; onClick: () => void }) {
-  const { t } = useTranslation();
   // Mağaza perspektifi:
   // Müşterilerin (-) bakiyeleri (totalNegative) mağazanın Alacağıdır (Pozitif gösterilir)
   // Müşterilerin (+) bakiyeleri (totalPositive) mağazanın Borcudur/Vereceğidir (Negatif gösterilir)
