@@ -785,9 +785,29 @@
   "validation": {
     "rateRequired": "Kur girilmeli"
   },
+  "modal": {
+    "generalBalance": "Genel Bakiye Hesapla",
+    "assetName": "Varlık",
+    "amount": "Miktar",
+    "rate": "TL Kuru",
+    "currency": "Döviz",
+    "gold": "Altın",
+    "other": "Diğer",
+    "storeRates": "Mağaza Kurları",
+    "centralBankRates": "Merkez Bankası",
+    "buyingRate": "Alış Kuru",
+    "sellingRate": "Satış Kuru",
+    "averageRate": "Ortalama",
+    "fetch": "Getir",
+    "fetching": "Getiriliyor...",
+    "close": "Kapat",
+    "calculate": "Hesapla",
+    "totalTryEquivalent": "Toplam TL Karşılığı"
+  },
   "datatable": {
-    "pageSize": "Sayfa boyutu",
-    "recordsShown": "kayıt gösteriliyor"
+    "pageSize": "Sayfa boyutu:",
+    "paginationInfo": "/",
+    "recordsShown": "gösteriliyor"
   },
   "api": {
     "unauthorized": "Bu işlem için yetkiniz yok.",
