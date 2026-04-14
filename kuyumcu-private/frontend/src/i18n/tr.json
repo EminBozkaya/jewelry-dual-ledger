@@ -161,9 +161,14 @@
     "portfolio": "Portföy",
     "printPortfolioLabel": "Portföyü Yazdır (Adisyon)",
     "allTransactions": "Tüm İşlemler",
-    "deposits": "Yatırma",
-    "withdrawals": "Çekme",
+    "deposits": "Müşteriden Alınan",
+    "withdrawals": "Müşteriye Verilen",
     "conversions": "Dönüşümler",
+    "txTypes": {
+      "deposit": "Müşteriden Alınan",
+      "withdrawal": "Müşteriye Verilen",
+      "conversion": "Dönüşüm"
+    },
     "allAssets": "Tüm Varlıklar",
     "allStatuses": "Tüm Durumlar",
     "activeStatus": "Aktif",
@@ -270,8 +275,8 @@
       "uploadPhoto": "Güncelle",
       "removePhoto": "Kaldır",
       "calculateBalance": "Müşteri Bakiye Hesapla",
-      "deposit": "Yatır",
-      "withdraw": "Çek",
+      "deposit": "Alınan",
+      "withdraw": "Verilen",
       "convert": "Dönüştür"
     },
     "dateFormat": {
@@ -665,11 +670,12 @@
     "insufficientBalance": "Yetersiz"
   },
   "deposit": {
-    "title": "Yatırma İşlemi",
+    "title": "Müşteriden Alma İşlemi",
+    "subtitle": "(Müşterinin Yatıracağı)",
     "assetUnit": "Varlık Birimi",
     "amount": "Miktar",
     "description": "Açıklama",
-    "submit": "Yatır",
+    "submit": "Al",
     "cancel": "İptal",
     "confirm": "✓ Onayla",
     "back": "Geri",
@@ -687,11 +693,12 @@
     }
   },
   "withdrawal": {
-    "title": "Çekme İşlemi",
+    "title": "Müşteriye Verme İşlemi",
+    "subtitle": "(Müşterinin Çekeceği)",
     "assetUnit": "Varlık Birimi",
     "amount": "Miktar",
     "description": "Açıklama",
-    "submit": "Çek",
+    "submit": "Ver",
     "cancel": "İptal",
     "confirm": "✓ Onayla",
     "back": "Geri",

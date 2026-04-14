@@ -125,32 +125,32 @@ function PortfolioRow({ asset, onClick }: { asset: PortfolioAsset; onClick: () =
   return (
     <button
       onClick={onClick}
-      className="group/row w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/60 dark:hover:bg-white/[0.04] cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/5"
+      className="group/row w-full flex items-center gap-4 sm:gap-6 px-3 sm:px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/60 dark:hover:bg-white/[0.04] cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/5"
     >
       {/* Asset code badge */}
-      <div className="flex-shrink-0 w-16 text-left">
-        <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold tracking-wider bg-black/[0.04] dark:bg-white/[0.06] text-foreground/80 border border-black/[0.03] dark:border-white/[0.04]">
+      <div className="flex-shrink-0 w-20 sm:w-28 text-left">
+        <span className="inline-flex items-center justify-center px-2 sm:px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold tracking-wider bg-black/[0.04] dark:bg-white/[0.06] text-foreground/80 border border-black/[0.03] dark:border-white/[0.04]">
           {asset.assetTypeCode}
         </span>
       </div>
 
       {/* Asset name */}
-      <span className="flex-1 text-sm font-medium text-foreground/80 text-left truncate group-hover/row:text-foreground transition-colors">
+      <span className="flex-1 text-sm sm:text-base font-medium text-foreground/80 text-left truncate group-hover/row:text-foreground transition-colors">
         {asset.assetTypeName}
       </span>
 
       {/* Customer count */}
-      <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground/70 flex-shrink-0">
+      <span className="hidden sm:flex items-center gap-1 text-xs sm:text-sm text-muted-foreground/70 flex-shrink-0">
         <Users className="h-3 w-3" />
         {asset.customerCount}
       </span>
 
       {/* Net amount */}
-      <div className="flex-shrink-0 text-right min-w-[120px]">
+      <div className="flex-shrink-0 text-right min-w-[110px] sm:min-w-[140px]">
         <AmountDisplay
           value={asset.netAmount}
           unitType={asset.unitType}
-          size="sm"
+          size="lg"
           invertPolarity={true}
           className="font-semibold tabular-nums"
         />
@@ -179,7 +179,7 @@ function PortfolioGroupSection({ group }: { group: AssetGroup }) {
         >
           <Icon className="h-3.5 w-3.5" style={{ color: group.accentColor }} />
         </div>
-        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <span className="text-sm font-semibold uppercase tracking-widest text-muted-foreground/60">
           {group.label}
         </span>
         <div className="flex-1 h-px bg-gradient-to-r from-black/5 dark:from-white/5 to-transparent" />
@@ -364,11 +364,23 @@ export function DashboardPage() {
               <p className="text-sm text-muted-foreground">{t("dashboard.noBalance")}</p>
             </div>
           ) : (
-            <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
-              {groups.map((group) => (
-                <PortfolioGroupSection key={group.label} group={group} />
-              ))}
-            </div>
+            <>
+              {/* Sütun başlığı */}
+              <div className="flex items-center gap-4 sm:gap-6 px-3 sm:px-4 pt-3 pb-1 border-b border-black/[0.04] dark:border-white/[0.04]">
+                <div className="flex-shrink-0 w-20 sm:w-28" />
+                <div className="flex-1" />
+                <div className="hidden sm:block flex-shrink-0" />
+                <div className="flex-shrink-0 text-right min-w-[110px] sm:min-w-[140px]">
+                  <span className="text-sm uppercase tracking-wider font-bold" style={{ color: "var(--color-gold)" }}>{t("portfolio.netStatus")}</span>
+                </div>
+                <div className="w-3.5 flex-shrink-0" />
+              </div>
+              <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
+                {groups.map((group) => (
+                  <PortfolioGroupSection key={group.label} group={group} />
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -167,10 +167,10 @@ export function AppHeader() {
                 <h4 className="font-semibold tracking-tight text-sm">Tema Seçimi / Theme</h4>
               </div>
               <div className="flex flex-col gap-1.5">
-                <p className="text-[13px] text-background/90 leading-relaxed font-medium">
+                <p className="text-[15px] text-background/90 leading-relaxed font-medium">
                   Buradaki buton vasıtasıyla gündüz moduna geçiş yapabilir, gözünüze en uygun deneyimi seçebilirsiniz.
                 </p>
-                <p className="text-[11px] text-background/70 leading-relaxed italic">
+                <p className="text-[13px] text-background/70 leading-relaxed italic">
                   You can switch to light mode using this button and choose the best experience for your eyes.
                 </p>
               </div>
@@ -195,7 +195,7 @@ export function AppHeader() {
                borderColor: "transparent"
              }}>
           <span className="text-xs font-medium">{user?.fullName}</span>
-          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide shadow-sm"
+          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-bold tracking-wide shadow-sm"
                 style={{
                   background: isAdmin ? "rgba(232,184,74,0.15)" : "var(--secondary)",
                   color: isAdmin ? "var(--color-gold)" : "var(--muted-foreground)",

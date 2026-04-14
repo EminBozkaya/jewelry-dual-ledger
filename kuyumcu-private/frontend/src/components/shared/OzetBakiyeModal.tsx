@@ -171,7 +171,7 @@ export function OzetBakiyeModal({
         <div className="space-y-4">
           {groups.map((g) => (
             <div key={g.titleKey}>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-1.5">
+              <p className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-1.5">
                 {t(`modal.${g.titleKey}`)}
               </p>
               <div className="space-y-1">
@@ -197,7 +197,7 @@ export function OzetBakiyeModal({
                           className={`h-8 text-right text-sm ${errors[b.assetTypeId] ? "border-destructive" : ""}`}
                         />
                         {errors[b.assetTypeId] && (
-                          <p className="text-[10px] text-destructive mt-0.5 text-right">{errors[b.assetTypeId]}</p>
+                          <p className="text-[12px] text-destructive mt-0.5 text-right">{errors[b.assetTypeId]}</p>
                         )}
                       </div>
                     </div>
