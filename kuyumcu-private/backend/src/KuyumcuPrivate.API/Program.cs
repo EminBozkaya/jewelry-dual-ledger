@@ -44,9 +44,14 @@ builder.Services.AddAuthorization(options =>
 });
 
 // CORS — React frontend lokal ağdan erişecek
+var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() 
+                  ?? [];
+
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+        policy.WithOrigins(corsOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()));
 
 
 // TCMB HTTP istemcisi

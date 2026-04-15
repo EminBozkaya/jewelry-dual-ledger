@@ -32,9 +32,9 @@ export function AmountDisplay({
     : "text-muted-foreground";
 
   const sizeClass = {
-    sm: "text-sm",
-    md: "text-base",
-    lg: "text-xl font-bold",
+    sm: "text-base",
+    md: "text-lg",
+    lg: "text-2xl font-bold",
   }[size];
 
   const formatted = formatAmount(Math.abs(value), unitType);

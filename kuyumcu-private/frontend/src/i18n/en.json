@@ -161,9 +161,14 @@
     "portfolio": "Portfolio",
     "printPortfolioLabel": "Print Portfolio (Receipt)",
     "allTransactions": "All Transactions",
-    "deposits": "Deposits",
-    "withdrawals": "Withdrawals",
+    "deposits": "Received from Customer",
+    "withdrawals": "Given to Customer",
     "conversions": "Conversions",
+    "txTypes": {
+      "deposit": "Received from Customer",
+      "withdrawal": "Given to Customer",
+      "conversion": "Conversion"
+    },
     "allAssets": "All Assets",
     "allStatuses": "All Statuses",
     "activeStatus": "Active",
@@ -270,8 +275,8 @@
       "uploadPhoto": "Update",
       "removePhoto": "Remove",
       "calculateBalance": "Calculate Customer Balance",
-      "deposit": "Deposit",
-      "withdraw": "Withdraw",
+      "deposit": "Received",
+      "withdraw": "Given",
       "convert": "Convert"
     },
     "dateFormat": {
@@ -689,11 +694,12 @@
     "recordsShown": "showing"
   },
   "deposit": {
-    "title": "Deposit",
+    "title": "Receiving from Customer",
+    "subtitle": "(Customer's Deposit)",
     "assetUnit": "Asset Unit",
     "amount": "Amount",
     "description": "Description",
-    "submit": "Deposit",
+    "submit": "Receive",
     "cancel": "Cancel",
     "confirm": "✓ Confirm",
     "back": "Back",
@@ -711,11 +717,12 @@
     }
   },
   "withdrawal": {
-    "title": "Withdrawal",
+    "title": "Giving to Customer",
+    "subtitle": "(Customer's Withdrawal)",
     "assetUnit": "Asset Unit",
     "amount": "Amount",
     "description": "Description",
-    "submit": "Withdraw",
+    "submit": "Give",
     "cancel": "Cancel",
     "confirm": "✓ Confirm",
     "back": "Back",

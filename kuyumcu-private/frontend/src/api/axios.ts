@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import i18n from "@/i18n";
 
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: import.meta.env.VITE_API_URL ?? "/api",
   headers: { "Content-Type": "application/json" },
 });
 

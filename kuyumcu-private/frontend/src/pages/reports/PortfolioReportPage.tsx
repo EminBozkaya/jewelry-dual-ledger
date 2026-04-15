@@ -53,7 +53,6 @@ function groupPortfolioAssets(assets: PortfolioAsset[], t: TFunction): AssetGrou
 }
 
 function PortfolioRow({ asset, onClick }: { asset: PortfolioAsset; onClick: () => void }) {
-  const { t } = useTranslation();
   // Mağaza perspektifi:
   // Müşterilerin (-) bakiyeleri (totalNegative) mağazanın Alacağıdır (Pozitif gösterilir)
   // Müşterilerin (+) bakiyeleri (totalPositive) mağazanın Borcudur/Vereceğidir (Negatif gösterilir)
@@ -61,55 +60,52 @@ function PortfolioRow({ asset, onClick }: { asset: PortfolioAsset; onClick: () =
   return (
     <button
       onClick={onClick}
-      className="group/row w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/60 dark:hover:bg-white/[0.04] cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/5"
+      className="group/row w-full flex items-center gap-2 sm:gap-4 lg:gap-6 px-2 sm:px-3 md:px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/60 dark:hover:bg-white/[0.04] cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/5"
     >
       {/* Varlık Kodu */}
-      <div className="flex-shrink-0 w-16 text-left">
-        <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold tracking-wider bg-black/[0.04] dark:bg-white/[0.06] text-foreground/80 border border-black/[0.03] dark:border-white/[0.04]">
+      <div className="flex-shrink-0 w-16 sm:w-20 lg:w-28 text-left">
+        <span className="inline-flex items-center justify-center px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs lg:text-sm font-bold tracking-wider bg-black/[0.04] dark:bg-white/[0.06] text-foreground/80 border border-black/[0.03] dark:border-white/[0.04]">
           {asset.assetTypeCode}
         </span>
       </div>
 
       {/* Varlık Adı */}
-      <span className="flex-1 text-sm font-medium text-foreground/80 text-left truncate group-hover/row:text-foreground transition-colors min-w-[100px]">
+      <span className="flex-1 text-xs sm:text-sm lg:text-base font-medium text-foreground/80 text-left truncate group-hover/row:text-foreground transition-colors min-w-[60px] sm:min-w-[80px] lg:min-w-[120px]">
         {asset.assetTypeName}
       </span>
 
       {/* Müşteri Sayısı */}
-      <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground/70 flex-shrink-0 w-24">
+      <span className="hidden md:flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground/70 flex-shrink-0 w-16 sm:w-20 lg:w-24">
         <Users className="h-3 w-3" />
         {asset.customerCount}
       </span>
 
       {/* Toplam Alacak (Müşteri Borcu) */}
-      <div className="hidden md:flex flex-col items-end flex-shrink-0 w-32">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("portfolio.storeReceivable")}</span>
+      <div className="hidden lg:flex flex-col items-end flex-shrink-0 w-24 xl:w-32">
         <AmountDisplay
           value={Math.abs(asset.totalNegative)}
           unitType={asset.unitType}
-          size="sm"
+          size="lg"
           className="font-medium text-[var(--color-alacak)]"
         />
       </div>
 
       {/* Toplam Verecek (Müşteri Alacağı) */}
-      <div className="hidden md:flex flex-col items-end flex-shrink-0 w-32">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("portfolio.storePayable")}</span>
+      <div className="hidden lg:flex flex-col items-end flex-shrink-0 w-24 xl:w-32">
         <AmountDisplay
           value={Math.abs(asset.totalPositive)}
           unitType={asset.unitType}
-          size="sm"
+          size="lg"
           className="font-medium text-[var(--color-borc)]"
         />
       </div>
 
       {/* Net Durum */}
-      <div className="flex flex-col items-end flex-shrink-0 w-32">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground md:hidden">{t("portfolio.netStatus")}</span>
+      <div className="flex flex-col items-end flex-shrink-0 w-24 sm:w-28 lg:w-36">
         <AmountDisplay
           value={asset.netAmount}
           unitType={asset.unitType}
-          size="sm"
+          size="lg"
           invertPolarity={true}
           className="font-semibold tabular-nums"
         />
@@ -324,11 +320,29 @@ export function PortfolioReportPage() {
               <p className="text-sm text-muted-foreground">{t("portfolio.noBalance")}</p>
             </div>
           ) : (
-            <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
-              {groups.map((group) => (
-                <PortfolioGroupSection key={group.label} group={group} onDetail={openDetail} />
-              ))}
-            </div>
+            <>
+              {/* Sütun başlıkları */}
+              <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 px-2 sm:px-3 md:px-4 pt-3 pb-1 border-b border-black/[0.04] dark:border-white/[0.04]">
+                <div className="flex-shrink-0 w-16 sm:w-20 lg:w-28" />
+                <div className="flex-1 min-w-[60px] sm:min-w-[80px] lg:min-w-[120px]" />
+                <div className="hidden md:block flex-shrink-0 w-16 sm:w-20 lg:w-24" />
+                <div className="hidden lg:flex flex-shrink-0 w-24 xl:w-32 justify-end">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-[var(--color-alacak)]">{t("portfolio.storeReceivable")}</span>
+                </div>
+                <div className="hidden lg:flex flex-shrink-0 w-24 xl:w-32 justify-end">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-[var(--color-borc)]">{t("portfolio.storePayable")}</span>
+                </div>
+                <div className="flex flex-shrink-0 w-24 sm:w-28 lg:w-36 justify-end">
+                  <span className="text-[11px] uppercase tracking-wider font-bold" style={{ color: "var(--color-gold)" }}>{t("portfolio.netStatus")}</span>
+                </div>
+                <div className="w-3.5 flex-shrink-0" />
+              </div>
+              <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
+                {groups.map((group) => (
+                  <PortfolioGroupSection key={group.label} group={group} onDetail={openDetail} />
+                ))}
+              </div>
+            </>
           )}
 
           {portfolio.length > 0 && !loading && (

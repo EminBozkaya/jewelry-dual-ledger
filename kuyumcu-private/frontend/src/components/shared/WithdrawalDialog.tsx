@@ -186,7 +186,11 @@ export function WithdrawalDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("withdrawal.title")} — {customer.fullName}</DialogTitle>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+            {customer.fullName}
+          </p>
+          <DialogTitle className="text-lg leading-tight">{t("withdrawal.title")}</DialogTitle>
+          <p className="text-sm text-muted-foreground">{t("withdrawal.subtitle")}</p>
         </DialogHeader>
 
         {step === "form" ? (

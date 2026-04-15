@@ -160,7 +160,7 @@ export function CustomerListPage() {
           <span className="font-medium">
             {c.fullName}
             {c.isDeleted && (
-              <span className="ml-2 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-destructive/10 text-destructive border border-destructive/20">
+              <span className="ml-2 inline-flex items-center rounded-full px-1.5 py-0.5 text-[12px] font-medium bg-destructive/10 text-destructive border border-destructive/20">
                 {t("customers.filter.deleted")}
               </span>
             )}

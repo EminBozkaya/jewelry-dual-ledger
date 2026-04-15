@@ -101,16 +101,21 @@ type FormValues = z.infer<typeof schema>;
 // ── İşlem tipi badge rengi ────────────────────────────────────
 function TransactionTypeBadge({ type }: { type: string }) {
   const { t } = useTranslation();
-  const map: Record<string, string> = {
+  const colorMap: Record<string, string> = {
     Deposit: "bg-green-100 text-green-800",
     Withdrawal: "bg-red-100 text-red-800",
     Conversion: "bg-blue-100 text-blue-800",
   };
+  const labelMap: Record<string, string> = {
+    Deposit: t("customerDetail.txTypes.deposit"),
+    Withdrawal: t("customerDetail.txTypes.withdrawal"),
+    Conversion: t("customerDetail.txTypes.conversion"),
+  };
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${map[type] ?? "bg-muted text-muted-foreground"}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colorMap[type] ?? "bg-muted text-muted-foreground"}`}
     >
-      {formatTransactionType(type, t)}
+      {labelMap[type] ?? type}
     </span>
   );
 }
@@ -766,7 +771,7 @@ export function CustomerDetailPage() {
             <div className="flex flex-col justify-center sm:w-[35%] sm:px-8">
               <div className="space-y-1.5">
                 <div className="flex flex-col items-start gap-1.5 mb-2">
-                  <h2 className="text-2xl font-bold">{customer.fullName}</h2>
+                  <h2 className="text-base font-bold">{customer.fullName}</h2>
                   {(() => {
                     const cfg = customerTypes.find((ct) => ct.value === Number(customer.type));
                     if (!cfg) return null;
@@ -825,7 +830,7 @@ export function CustomerDetailPage() {
                 <div className="sm:flex-1 sm:pl-8 flex justify-center sm:justify-start items-start">
                   <div className="w-full max-w-xs">
                     <div className="flex items-center gap-2 mb-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      <p className="text-base font-semibold uppercase tracking-widest text-muted-foreground">
                         {t("customerDetail.portfolio")}
                       </p>
                       {balances.length > 0 && (
@@ -839,12 +844,12 @@ export function CustomerDetailPage() {
                       )}
                     </div>
                     {balances.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">{t("customerDetail.noBalance")}</p>
+                      <p className="text-sm text-muted-foreground italic">{t("customerDetail.noBalance")}</p>
                     ) : (
                       <div className="space-y-3">
                         {groupsWithKeys.map((g) => (
                           <div key={g.titleKey}>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-1">
+                            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/50 mb-1">
                               {t(`customerDetail.assetGroups.${g.titleKey}`)}
                             </p>
                             <div className="space-y-0.5">
@@ -855,9 +860,9 @@ export function CustomerDetailPage() {
                                     key={b.assetTypeId}
                                     className="grid grid-cols-2 gap-2 items-center rounded px-1.5 py-0.5 hover:bg-muted/50 transition-colors"
                                   >
-                                    <span className="text-xs text-muted-foreground truncate">{b.assetTypeName}</span>
+                                    <span className="text-base text-muted-foreground truncate">{b.assetTypeName}</span>
                                     <span
-                                      className={`text-xs font-semibold tabular-nums text-right ${isPos ? "text-green-600" : "text-red-600"}`}
+                                      className={`text-lg font-semibold tabular-nums text-right ${isPos ? "text-green-600" : "text-red-600"}`}
                                       style={{ textShadow: isPos ? "0 0 6px rgba(22,163,74,0.3)" : "0 0 6px rgba(220,38,38,0.3)" }}
                                     >
                                       {isPos ? "+" : ""}{formatAmount(b.amount, b.unitType)}
@@ -881,7 +886,7 @@ export function CustomerDetailPage() {
             <div className="mt-5 pt-5 border-t border-border flex justify-center">
               <button
                 onClick={() => setOzetOpen(true)}
-                className="group flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300"
+                className="group flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-semibold transition-all duration-300"
                 style={{
                   color: "var(--color-gold)",
                   background: "rgba(212,164,55,0.06)",
@@ -910,26 +915,26 @@ export function CustomerDetailPage() {
       {/* İşlem Butonları */}
       <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
         <Button
-          className="flex-1 gap-2 min-h-11 bg-green-600 hover:bg-green-700"
+          className="flex-1 gap-2 min-h-11 text-base bg-green-600 hover:bg-green-700"
           onClick={() => setDepositOpen(true)}
         >
-          <Banknote className="h-4 w-4" />
+          <Banknote className="h-5 w-5" />
           {t("customerDetail.buttons.deposit")}
         </Button>
         <Button
           variant="outline"
-          className="flex-1 gap-2 min-h-11 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+          className="flex-1 gap-2 min-h-11 text-base border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
           onClick={() => setWithdrawOpen(true)}
         >
-          <ArrowUpFromLine className="h-4 w-4" />
+          <ArrowUpFromLine className="h-5 w-5" />
           {t("customerDetail.buttons.withdraw")}
         </Button>
         <Button
           variant="outline"
-          className="flex-1 gap-2 min-h-11"
+          className="flex-1 gap-2 min-h-11 text-base"
           onClick={() => setConvertOpen(true)}
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className="h-5 w-5" />
           {t("customerDetail.buttons.convert")}
         </Button>
       </div>
