@@ -430,6 +430,7 @@ export function PortfolioReportPage() {
         onOpenChange={setOzetOpen}
         balances={portfolioBalances}
         assetTypes={assetTypes}
+        perspective="store"
       />
     </div>
   );

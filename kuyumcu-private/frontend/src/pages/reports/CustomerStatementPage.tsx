@@ -35,14 +35,14 @@ function BalanceRow({ balance }: { balance: Balance }) {
   const { t } = useTranslation();
   if (balance.amount === 0) return null;
   return (
-    <div className="flex justify-between items-center py-1 border-b last:border-0">
-      <span className="text-sm">{balance.assetTypeName}</span>
-      <div className="flex items-center gap-2">
-        <AmountDisplay value={balance.amount} unitType={balance.unitType} size="sm" />
+    <div className="flex justify-between items-center py-2 border-b last:border-0">
+      <span className="text-base font-medium">{balance.assetTypeName}</span>
+      <div className="flex items-center gap-3">
+        <AmountDisplay value={balance.amount} unitType={balance.unitType} size="md" className="font-semibold" />
         <Badge
           className={balance.amount >= 0
-            ? "bg-green-100 text-green-800 hover:bg-green-100 text-xs"
-            : "bg-red-100 text-red-800 hover:bg-red-100 text-xs"}
+            ? "bg-green-100 text-green-800 hover:bg-green-100"
+            : "bg-red-100 text-red-800 hover:bg-red-100"}
         >
           {balance.amount >= 0 ? t("statement.receivable") : t("statement.debt")}
         </Badge>
@@ -79,46 +79,56 @@ export function CustomerStatementPage() {
       cell: ({ getValue }) => <span className="text-sm">{formatDate(getValue<string>())}</span>,
     },
     {
-      accessorKey: "type",
+      id: "type",
+      accessorFn: (row) => {
+        const types: Record<string, string> = {
+          Deposit: t("statement.txTypes.deposit"),
+          Withdrawal: t("statement.txTypes.withdrawal"),
+          Conversion: t("statement.txTypes.conversion"),
+        };
+        return types[row.type] ?? row.type;
+      },
       header: t("statement.columns.type"),
-      cell: ({ getValue }) => {
-        const type = getValue<string>();
+      cell: ({ getValue, row }) => {
+        const displayValue = getValue<string>();
         const map: Record<string, string> = {
           Deposit: "bg-green-100 text-green-800",
           Withdrawal: "bg-red-100 text-red-800",
           Conversion: "bg-blue-100 text-blue-800",
         };
         return (
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${map[type] ?? "bg-muted"}`}>
-            {formatTransactionType(type)}
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${map[row.original.type] ?? "bg-muted"}`}>
+            {displayValue}
           </span>
         );
       },
     },
     {
       id: "asset",
-      header: t("statement.columns.asset"),
-      cell: ({ row }) => {
-        const tx = row.original;
-        if (tx.type === "Conversion" && tx.conversion)
-          return <span className="text-sm">{tx.conversion.fromAssetCode} → {tx.conversion.toAssetCode}</span>;
-        return <span className="text-sm">{tx.assetTypeName ?? "—"}</span>;
+      accessorFn: (row) => {
+        if (row.type === "Conversion" && row.conversion)
+          return `${row.conversion.fromAssetCode} → ${row.conversion.toAssetCode}`;
+        return row.assetTypeName ?? "—";
       },
+      header: t("statement.columns.asset"),
+      cell: ({ getValue }) => <span className="text-sm">{getValue<string>()}</span>,
     },
     {
       id: "amount",
-      header: t("statement.columns.amount"),
-      cell: ({ row }) => {
-        const tx = row.original;
-        if (tx.type === "Conversion" && tx.conversion) {
-          return (
-            <span className="text-sm text-muted-foreground">
-              {tx.conversion.fromAmount.toLocaleString("tr-TR", { maximumFractionDigits: 6 })} → {tx.conversion.toAmount.toLocaleString("tr-TR", { maximumFractionDigits: 6 })}
-            </span>
-          );
+      accessorFn: (row) => {
+        if (row.type === "Conversion" && row.conversion) {
+          return `${row.conversion.fromAmount.toLocaleString("tr-TR", { maximumFractionDigits: 6 })} → ${row.conversion.toAmount.toLocaleString("tr-TR", { maximumFractionDigits: 6 })}`;
         }
-        const cls = tx.type === "Deposit" ? "text-[var(--color-alacak)]" : "text-[var(--color-borc)]";
-        return <span className={`font-medium text-sm ${cls}`}>{tx.amount?.toLocaleString("tr-TR", { maximumFractionDigits: 6 }) ?? "—"}</span>;
+        return row.amount?.toLocaleString("tr-TR", { maximumFractionDigits: 6 }) ?? "—";
+      },
+      header: t("statement.columns.amount"),
+      cell: ({ getValue, row }) => {
+        const displayValue = getValue<string>();
+        if (row.original.type === "Conversion") {
+          return <span className="text-sm text-muted-foreground">{displayValue}</span>;
+        }
+        const cls = row.original.type === "Deposit" ? "text-[var(--color-alacak)]" : "text-[var(--color-borc)]";
+        return <span className={`font-medium text-sm ${cls}`}>{displayValue}</span>;
       },
     },
     {

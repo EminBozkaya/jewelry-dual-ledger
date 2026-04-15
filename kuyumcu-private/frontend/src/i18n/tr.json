@@ -239,7 +239,7 @@
       "back": "Vazgeç"
     },
     "ozetBakiye": {
-      "title": "Genel Bakiye Hesapla",
+      "title": "Müşteri Genel Bakiye Hesapla",
       "rateType": "Kur Tipi",
       "buying": "Alış",
       "selling": "Satış",
@@ -361,14 +361,16 @@
     "lastWeek": "Son Hafta",
     "lastMonth": "Son 1 Ay",
     "thisYear": "Bu Sene",
-    "deposits": "Yatırma İşlemleri",
-    "withdrawals": "Çekme İşlemleri",
+    "deposits": "(Müşterinin Yatırma İşlemleri)",
+    "depositsHeading": "Müşteriden Alma İşlemleri",
+    "withdrawals": "(Müşterinin Çekme İşlemleri)",
+    "withdrawalsHeading": "Müşteriye Verme İşlemleri",
     "conversions": "Dönüşüm İşlemleri",
     "noTransactions": "İşlem yok",
     "transactionList": "İşlem Listesi",
     "allTransactions": "Tüm İşlemler",
-    "deposit": "Yatırma",
-    "withdrawal": "Çekme",
+    "deposit": "Alınan",
+    "withdrawal": "Verilen",
     "conversionFilter": "Dönüşümler",
     "searchPlaceholder": "Müşteri veya açıklama ara...",
     "noData": "Bu tarihler arasında işlem bulunmuyor",
@@ -429,10 +431,15 @@
     "generateReportHint": "Rapor oluşturmak için yukarıdaki \"Rapor Oluştur\" butonuna tıklayın.",
     "columns": {
       "date": "Tarih",
-      "type": "Tür",
+      "type": "İşlem Türü",
       "asset": "Varlık",
       "amount": "Miktar",
       "description": "Açıklama"
+    },
+    "txTypes": {
+      "deposit": "Mağazaya Yatırdı",
+      "withdrawal": "Mağazadan Çekti",
+      "conversion": "Dönüşüm"
     },
     "export": {
       "customerInfo": "Müşteri Bilgileri",
@@ -780,8 +787,8 @@
     "assetTypes": "Varlık Tipleri"
   },
   "formatters": {
-    "deposit": "Yatırma",
-    "withdrawal": "Çekme",
+    "deposit": "Müşteriden Alındı",
+    "withdrawal": "Müşteriye Verildi",
     "conversion": "Dönüşüm"
   },
   "rates": {
@@ -794,6 +801,8 @@
   },
   "modal": {
     "generalBalance": "Genel Bakiye Hesapla",
+    "customerGeneralBalance": "Müşteri Genel Bakiye Hesabı",
+    "storeGeneralBalance": "Mağaza Genel Bakiye Hesabı",
     "assetName": "Varlık",
     "amount": "Miktar",
     "rate": "TL Kuru",

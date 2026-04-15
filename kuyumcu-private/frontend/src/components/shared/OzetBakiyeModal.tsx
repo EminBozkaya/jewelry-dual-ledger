@@ -12,11 +12,13 @@ export function OzetBakiyeModal({
   onOpenChange,
   balances,
   assetTypes,
+  perspective = "customer",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   balances: Balance[];
   assetTypes: AssetType[];
+  perspective?: "customer" | "store";
 }) {
   const { t } = useTranslation();
   const [rates, setRates] = useState<Record<string, string>>({});
@@ -157,7 +159,11 @@ export function OzetBakiyeModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t("customerDetail.ozetBakiye.title")}</DialogTitle>
+          <DialogTitle>
+            {perspective === "store"
+              ? t("modal.storeGeneralBalance")
+              : t("modal.customerGeneralBalance")}
+          </DialogTitle>
         </DialogHeader>
 
         {/* Tablo başlığı */}
@@ -177,12 +183,16 @@ export function OzetBakiyeModal({
               <div className="space-y-1">
                 {g.items.map((b) => {
                   const isTRY = b.assetTypeCode === "TRY";
-                  const isPos = b.amount >= 0;
+                  // Mağaza perspektifinde rengi tersine çevir:
+                  // Müşterinin (-) bakiyesi → mağazanın alacağı (yeşil)
+                  // Müşterinin (+) bakiyesi → mağazanın vereceği (kırmızı)
+                  const displayAmount = perspective === "store" ? b.amount * -1 : b.amount;
+                  const isPos = displayAmount >= 0;
                   return (
                     <div key={b.assetTypeId} className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-start">
                       <span className="text-sm pt-1.5 truncate">{b.assetTypeName}</span>
                       <span className={`text-sm font-semibold tabular-nums text-right pt-1.5 w-24 ${isPos ? "text-green-600" : "text-red-600"}`}>
-                        {isPos ? "+" : ""}{formatAmount(b.amount, b.unitType)}
+                        {isPos ? "+" : ""}{formatAmount(displayAmount, b.unitType)}
                       </span>
                       <div className="w-24">
                         <Input
@@ -209,18 +219,22 @@ export function OzetBakiyeModal({
         </div>
 
         {/* Sonuç */}
-        {result !== null && (
-          <div className={`flex items-center justify-between rounded-lg px-4 py-3 mt-1 ${result >= 0 ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
-            <span className="text-sm font-medium text-muted-foreground">{t("modal.totalTryEquivalent")}</span>
-            <span
-              className={`text-lg font-bold tabular-nums ${result >= 0 ? "text-green-600" : "text-red-600"}`}
-              style={{ textShadow: result >= 0 ? "0 0 10px rgba(22,163,74,0.3)" : "0 0 10px rgba(220,38,38,0.3)" }}
-            >
-              {result >= 0 ? "+" : ""}
-              {result.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
-            </span>
-          </div>
-        )}
+        {result !== null && (() => {
+          // Mağaza perspektifinde sonucu da ters çevir
+          const displayResult = perspective === "store" ? result * -1 : result;
+          return (
+            <div className={`flex items-center justify-between rounded-lg px-4 py-3 mt-1 ${displayResult >= 0 ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+              <span className="text-sm font-medium text-muted-foreground">{t("modal.totalTryEquivalent")}</span>
+              <span
+                className={`text-lg font-bold tabular-nums ${displayResult >= 0 ? "text-green-600" : "text-red-600"}`}
+                style={{ textShadow: displayResult >= 0 ? "0 0 10px rgba(22,163,74,0.3)" : "0 0 10px rgba(220,38,38,0.3)" }}
+              >
+                {displayResult >= 0 ? "+" : ""}
+                {displayResult.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Footer — kur kaynakları + aksiyon butonları */}
         <div className="flex flex-col gap-3 pt-3 border-t">
