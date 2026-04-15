@@ -4,7 +4,7 @@ import type { User, UserCreateRequest } from "@/types";
 export interface UserUpdateRequest {
   fullName: string;
   username: string;
-  role: "Admin" | "Staff";
+  role: "SuperAdmin" | "Admin" | "Staff";
   isActive: boolean;
 }
 

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KuyumcuPrivate.Infrastructure.Services;
 
-public class CustomerService(AppDbContext db) : ICustomerService
+public class CustomerService(AppDbContext db, ICurrentStoreContext storeContext) : ICustomerService
 {
     public async Task<List<CustomerResponse>> GetAllAsync(bool? includeDeleted = false)
     {
@@ -66,7 +66,8 @@ public class CustomerService(AppDbContext db) : ICustomerService
             Email      = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
             NationalId = nationalId,
             Type       = request.Type,
-            Notes      = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim()
+            Notes      = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+            StoreId    = storeContext.StoreId   // Mağaza izolasyonu
         };
 
         db.Customers.Add(customer);

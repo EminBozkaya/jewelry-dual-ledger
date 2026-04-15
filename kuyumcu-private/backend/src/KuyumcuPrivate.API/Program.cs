@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using KuyumcuPrivate.API.Endpoints;
+using KuyumcuPrivate.API.Middleware;
 using KuyumcuPrivate.Infrastructure;
 using KuyumcuPrivate.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,7 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 // Hassas anahtarları git'e gitmeyecek yerel config'den yükle
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+//builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // Veritabanı
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -40,7 +41,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole("Admin"));
+        policy.RequireRole("Admin", "SuperAdmin"));
+
+    options.AddPolicy("SuperAdminOnly", policy =>
+        policy.RequireRole("SuperAdmin"));
 });
 
 // CORS — React frontend lokal ağdan erişecek
@@ -90,8 +94,17 @@ builder.Services.AddAntiforgery();
 var app = builder.Build();
 
 app.UseCors();
+
+// 1. Store çözümleme — her şeyden önce
+app.UseMiddleware<StoreResolutionMiddleware>();
+
+// 2. Authentication
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 3. Store claim doğrulama — auth'dan sonra
+app.UseMiddleware<StoreClaimValidationMiddleware>();
+
 app.UseAntiforgery();
 
 if (app.Environment.IsDevelopment())
@@ -119,6 +132,8 @@ app.MapDashboardEndpoints();
 app.MapReportEndpoints();
 app.MapUserEndpoints();
 app.MapRatesEndpoints();
+app.MapStoreSettingEndpoints();
+app.MapPlatformEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
 

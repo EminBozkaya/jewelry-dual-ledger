@@ -4,5 +4,7 @@ public record LoginResponse(
     string Token,
     string FullName,
     string Role,
-    DateTime ExpiresAt
+    DateTime ExpiresAt,
+    string StoreSlug,     // Frontend redirect için
+    Guid StoreId          // Frontend context için
 );

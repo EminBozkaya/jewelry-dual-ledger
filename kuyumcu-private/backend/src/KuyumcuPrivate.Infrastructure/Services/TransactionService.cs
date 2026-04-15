@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KuyumcuPrivate.Infrastructure.Services;
 
-public class TransactionService(AppDbContext db) : ITransactionService
+public class TransactionService(AppDbContext db, ICurrentStoreContext storeContext) : ITransactionService
 {
     // ── Yatırma ──────────────────────────────────────────────────────────────
     public async Task<TransactionResponse> DepositAsync(DepositRequest request, Guid userId)
@@ -19,7 +19,8 @@ public class TransactionService(AppDbContext db) : ITransactionService
             AssetTypeId  = request.AssetTypeId,
             Amount       = request.Amount,
             Description  = request.Description,
-            CreatedBy    = userId
+            CreatedBy    = userId,
+            StoreId      = storeContext.StoreId   // Mağaza izolasyonu
         };
 
         db.Transactions.Add(transaction);
@@ -40,7 +41,8 @@ public class TransactionService(AppDbContext db) : ITransactionService
             AssetTypeId = request.AssetTypeId,
             Amount      = request.Amount,
             Description = request.Description,
-            CreatedBy   = userId
+            CreatedBy   = userId,
+            StoreId     = storeContext.StoreId   // Mağaza izolasyonu
         };
 
         db.Transactions.Add(transaction);
@@ -71,7 +73,8 @@ public class TransactionService(AppDbContext db) : ITransactionService
             CustomerId  = request.CustomerId,
             Type        = TransactionType.Conversion,
             Description = request.Description,
-            CreatedBy   = userId
+            CreatedBy   = userId,
+            StoreId     = storeContext.StoreId   // Mağaza izolasyonu
         };
 
         db.Transactions.Add(transaction);
@@ -157,7 +160,8 @@ public class TransactionService(AppDbContext db) : ITransactionService
             {
                 CustomerId  = customerId,
                 AssetTypeId = assetTypeId,
-                Amount      = 0
+                Amount      = 0,
+                StoreId     = storeContext.StoreId   // Mağaza izolasyonu
             };
             db.Balances.Add(balance);
         }

@@ -9,14 +9,18 @@ export interface LoginResponse {
   fullName: string;
   role: string;
   expiresAt: string;
+  storeSlug: string;
+  storeId: string;
 }
 
 export interface AuthUser {
   id?: string;
   token: string;
   fullName: string;
-  role: "Admin" | "Staff";
+  role: "SuperAdmin" | "Admin" | "Staff";
   expiresAt: Date;
+  storeSlug: string;
+  storeId: string;
 }
 
 // ── Customer ──────────────────────────────────────────────────
@@ -160,7 +164,7 @@ export interface User {
   id: string;
   fullName: string;
   username: string;
-  role: "Admin" | "Staff";
+  role: "SuperAdmin" | "Admin" | "Staff";
   isActive: boolean;
 }
 
@@ -168,7 +172,7 @@ export interface UserCreateRequest {
   fullName: string;
   username: string;
   password: string;
-  role: "Admin" | "Staff";
+  role: "SuperAdmin" | "Admin" | "Staff";
 }
 
 // ── Report Types ──────────────────────────────────────────────

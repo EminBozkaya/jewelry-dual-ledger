@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(dotnet ef:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker info:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

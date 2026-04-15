@@ -7,13 +7,24 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor — token ekle
+// Request interceptor — token ekle ve geliştirme ortamında store parametresi gönder
 api.interceptors.request.use((config) => {
   const stored = localStorage.getItem("auth");
   if (stored) {
     const auth = JSON.parse(stored);
     config.headers.Authorization = `Bearer ${auth.token}`;
   }
+
+  // Geliştirme ortamında store bilgisini query string ile gönder
+  // Production'da Caddy, subdomain'den X-Store-Slug header'ı ekler
+  if (window.location.hostname === "localhost") {
+    const storeSlug = localStorage.getItem("storeSlug") ?? "demo";
+    const base = config.baseURL ?? "";
+    const url = new URL(config.url!, base.startsWith("http") ? base : window.location.origin + base);
+    url.searchParams.set("store", storeSlug);
+    config.url = url.pathname + url.search;
+  }
+
   return config;
 });
 

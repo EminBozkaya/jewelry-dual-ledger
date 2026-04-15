@@ -30,15 +30,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const authUser: AuthUser = {
       token: response.token,
       fullName: response.fullName,
-      role: response.role as "Admin" | "Staff",
+      role: response.role as "SuperAdmin" | "Admin" | "Staff",
       expiresAt: new Date(response.expiresAt),
+      storeSlug: response.storeSlug,
+      storeId: response.storeId,
     };
     localStorage.setItem("auth", JSON.stringify(authUser));
+    localStorage.setItem("storeSlug", response.storeSlug);
     setUser(authUser);
   };
 
   const logout = () => {
     localStorage.removeItem("auth");
+    localStorage.removeItem("storeSlug");
     setUser(null);
   };
 
@@ -58,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
-        isAdmin: user?.role === "Admin",
+        isAdmin: user?.role === "Admin" || user?.role === "SuperAdmin",
         login,
         logout,
       }}

@@ -1,11 +1,25 @@
 using KuyumcuPrivate.Domain.Entities;
 using KuyumcuPrivate.Domain.Enums;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace KuyumcuPrivate.Infrastructure.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext : DbContext
 {
+    private readonly Guid? _currentStoreId;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor? httpContextAccessor = null)
+        : base(options)
+    {
+        // Middleware tarafından HttpContext.Items["StoreId"] olarak set ediliyor
+        if (httpContextAccessor?.HttpContext?.Items.TryGetValue("StoreId", out var storeIdObj) == true
+            && storeIdObj is Guid storeId)
+        {
+            _currentStoreId = storeId;
+        }
+    }
+
     public DbSet<User> Users => Set<User>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<AssetType> AssetTypes => Set<AssetType>();
@@ -13,6 +27,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Balance> Balances => Set<Balance>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Conversion> Conversions => Set<Conversion>();
+    public DbSet<Store> Stores => Set<Store>();
+    public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
+    public DbSet<StoreAssetType> StoreAssetTypes => Set<StoreAssetType>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,13 +41,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasKey(x => x.Id);
             e.HasIndex(x => x.Username).IsUnique();
             e.Property(x => x.Role).HasConversion<string>();
+            e.HasOne(x => x.Store).WithMany(x => x.Users).HasForeignKey(x => x.StoreId);
         });
 
         // Customer
         modelBuilder.Entity<Customer>(e =>
         {
             e.HasKey(x => x.Id);
-            e.HasQueryFilter(x => !x.IsDeleted); // Soft delete global filtresi
+            // HasQueryFilter birleşik olarak aşağıda tanımlanıyor
+            e.HasOne(x => x.Store).WithMany(x => x.Customers).HasForeignKey(x => x.StoreId);
         });
 
         // AssetType
@@ -50,6 +69,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Amount).HasPrecision(18, 6);
             e.HasOne(x => x.Customer).WithMany(x => x.Balances).HasForeignKey(x => x.CustomerId);
             e.HasOne(x => x.AssetType).WithMany(x => x.Balances).HasForeignKey(x => x.AssetTypeId);
+            e.HasOne(x => x.Store).WithMany(x => x.Balances).HasForeignKey(x => x.StoreId);
         });
 
         // Transaction
@@ -61,6 +81,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(x => x.Customer).WithMany(x => x.Transactions).HasForeignKey(x => x.CustomerId);
             e.HasOne(x => x.AssetType).WithMany(x => x.Transactions).HasForeignKey(x => x.AssetTypeId).IsRequired(false);
             e.HasOne(x => x.CreatedByUser).WithMany(x => x.Transactions).HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Store).WithMany(x => x.Transactions).HasForeignKey(x => x.StoreId);
         });
 
         // Conversion
@@ -85,10 +106,96 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.Value).IsUnique();
         });
 
-        // Seed: Varsayılan varlık birimleri ve müşteri tipleri
+        // Store
+        modelBuilder.Entity<Store>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Slug).IsUnique();
+            e.Property(x => x.Slug).HasMaxLength(63); // subdomain max length
+        });
+
+        // StoreSetting
+        modelBuilder.Entity<StoreSetting>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.StoreId, x.Key }).IsUnique();
+            e.Property(x => x.Key).HasMaxLength(128);
+            e.HasOne(x => x.Store).WithMany(x => x.Settings).HasForeignKey(x => x.StoreId);
+        });
+
+        // StoreAssetType
+        modelBuilder.Entity<StoreAssetType>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.StoreId, x.AssetTypeId }).IsUnique();
+            e.HasOne(x => x.Store).WithMany(x => x.StoreAssetTypes).HasForeignKey(x => x.StoreId);
+            e.HasOne(x => x.AssetType).WithMany().HasForeignKey(x => x.AssetTypeId);
+        });
+
+        // ── Global Store Filter ──────────────────────────────────────────────
+        // IStoreScoped implement eden tüm entity'lere otomatik filtre uygula
+        if (_currentStoreId.HasValue)
+        {
+            var storeId = _currentStoreId.Value;
+
+            modelBuilder.Entity<User>().HasQueryFilter(
+                x => x.StoreId == storeId);
+
+            modelBuilder.Entity<Customer>().HasQueryFilter(
+                x => !x.IsDeleted && x.StoreId == storeId);  // Mevcut soft-delete filtresi korunuyor
+
+            modelBuilder.Entity<Balance>().HasQueryFilter(
+                x => x.StoreId == storeId);
+
+            modelBuilder.Entity<Transaction>().HasQueryFilter(
+                x => x.StoreId == storeId);
+
+            modelBuilder.Entity<StoreSetting>().HasQueryFilter(
+                x => x.StoreId == storeId);
+
+            modelBuilder.Entity<StoreAssetType>().HasQueryFilter(
+                x => x.StoreId == storeId);
+        }
+        else
+        {
+            // StoreId yoksa (migration, seed vb.) sadece mevcut soft-delete filtresi
+            modelBuilder.Entity<Customer>().HasQueryFilter(x => !x.IsDeleted);
+        }
+
+        // Seed: Varsayılan varlık birimleri, mağaza ve kullanıcılar
+        SeedDefaultStore(modelBuilder);
         SeedAssetTypes(modelBuilder);
         SeedCustomerTypeConfigs(modelBuilder);
         SeedUsers(modelBuilder);
+        SeedSuperAdmin(modelBuilder);
+    }
+
+    private static void SeedDefaultStore(ModelBuilder modelBuilder)
+    {
+        var defaultStoreId = Guid.Parse("00000000-0000-0000-0000-000000000100");
+
+        modelBuilder.Entity<Store>().HasData(new Store
+        {
+            Id        = defaultStoreId,
+            Name      = "Demo Kuyumculuk",
+            Slug      = "demo",
+            IsActive  = true,
+            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+        });
+    }
+
+    private static void SeedSuperAdmin(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<User>().HasData(new User
+        {
+            Id           = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+            FullName     = "Platform Yöneticisi",
+            Username     = "superadmin",
+            PasswordHash = "$2a$11$SvWPJeZnHSIKMoXVfuuNWOo9.ikF5d0I5FmR0Zh40I2lFTIAgmRMS",
+            Role         = UserRole.SuperAdmin,
+            IsActive     = true,
+            StoreId      = Guid.Parse("00000000-0000-0000-0000-000000000100")  // Varsayılan mağazaya bağlı
+        });
     }
 
     private static void SeedCustomerTypeConfigs(ModelBuilder modelBuilder)
@@ -110,7 +217,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             Username     = "admin",
             PasswordHash = "$2a$11$Hlu3yqAS8.BJeHGwZmW06eSSS7dZnaVQNyHwgbN.AbW9G0ly4waj2",
             Role         = UserRole.Admin,
-            IsActive     = true
+            IsActive     = true,
+            StoreId      = Guid.Parse("00000000-0000-0000-0000-000000000100")  // Varsayılan mağazaya bağlı
         });
     }
 

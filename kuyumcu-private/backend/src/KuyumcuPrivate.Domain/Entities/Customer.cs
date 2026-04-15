@@ -3,7 +3,7 @@ using KuyumcuPrivate.Domain.Enums;
 
 namespace KuyumcuPrivate.Domain.Entities;
 
-public class Customer : BaseEntity
+public class Customer : BaseEntity, IStoreScoped
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
@@ -17,8 +17,10 @@ public class Customer : BaseEntity
     public string? Notes { get; set; }         // Genel müşteri notu — serbest metin
     public bool IsDeleted { get; set; } = false; // Soft delete
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid StoreId { get; set; }
 
     // Navigation
+    public Store Store { get; set; } = null!;
     public ICollection<Balance> Balances { get; set; } = [];
     public ICollection<Transaction> Transactions { get; set; } = [];
 }

@@ -15,6 +15,7 @@ public class AuthService(AppDbContext db, IConfiguration config) : IAuthService
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
         var user = await db.Users
+            .IgnoreQueryFilters()  // Login store filter'dan muaf — kullanıcı tüm mağazalarda aranır
             .FirstOrDefaultAsync(u => u.Username == request.Username && u.IsActive);
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -30,7 +31,8 @@ public class AuthService(AppDbContext db, IConfiguration config) : IAuthService
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.FullName),
-            new Claim(ClaimTypes.Role, user.Role.ToString())
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim("store_id", user.StoreId.ToString())   // Mağaza claim'i
         };
 
         var token = new JwtSecurityToken(
@@ -41,11 +43,18 @@ public class AuthService(AppDbContext db, IConfiguration config) : IAuthService
             signingCredentials: creds
         );
 
+        // Kullanıcının store'unu çek (slug için)
+        var store = await db.Stores
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.Id == user.StoreId);
+
         return new LoginResponse(
             Token: new JwtSecurityTokenHandler().WriteToken(token),
             FullName: user.FullName,
             Role: user.Role.ToString(),
-            ExpiresAt: expiresAt
+            ExpiresAt: expiresAt,
+            StoreSlug: store?.Slug ?? "",
+            StoreId: user.StoreId
         );
     }
 }

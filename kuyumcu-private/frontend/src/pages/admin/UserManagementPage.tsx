@@ -45,7 +45,7 @@ const createSchema = z
     username: z.string().min(3, "username_min"),
     password: z.string().min(6, "password_min"),
     confirmPassword: z.string(),
-    role: z.enum(["Admin", "Staff"]),
+    role: z.enum(["SuperAdmin", "Admin", "Staff"]),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "password_mismatch",
@@ -55,7 +55,7 @@ const createSchema = z
 const editSchema = z.object({
   fullName: z.string().min(2, "fullName_min"),
   username: z.string().min(3, "username_min"),
-  role: z.enum(["Admin", "Staff"]),
+  role: z.enum(["SuperAdmin", "Admin", "Staff"]),
   isActive: z.boolean(),
 });
 
@@ -317,7 +317,7 @@ export function UserManagementPage() {
               <Label>{t("users.createForm.role")}</Label>
               <Select
                 defaultValue="Staff"
-                onValueChange={(v) => createForm.setValue("role", v as "Admin" | "Staff")}
+                onValueChange={(v) => createForm.setValue("role", v as "SuperAdmin" | "Admin" | "Staff")}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -359,7 +359,7 @@ export function UserManagementPage() {
               <Label>{t("users.editForm.role")}</Label>
               <Select
                 value={editForm.watch("role")}
-                onValueChange={(v) => editForm.setValue("role", v as "Admin" | "Staff")}
+                onValueChange={(v) => editForm.setValue("role", v as "SuperAdmin" | "Admin" | "Staff")}
               >
                 <SelectTrigger>
                   <SelectValue />

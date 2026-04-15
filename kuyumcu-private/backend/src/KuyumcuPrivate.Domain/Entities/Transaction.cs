@@ -3,7 +3,7 @@ using KuyumcuPrivate.Domain.Enums;
 
 namespace KuyumcuPrivate.Domain.Entities;
 
-public class Transaction : BaseEntity
+public class Transaction : BaseEntity, IStoreScoped
 {
     public Guid CustomerId { get; set; }
     public TransactionType Type { get; set; }
@@ -17,8 +17,10 @@ public class Transaction : BaseEntity
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsCancelled { get; set; } = false;  // Soft delete — işlem silinmez, iptal edilir
     public string? CancelReason { get; set; }
+    public Guid StoreId { get; set; }
 
     // Navigation
+    public Store Store { get; set; } = null!;
     public Customer Customer { get; set; } = null!;
     public AssetType? AssetType { get; set; }
     public User CreatedByUser { get; set; } = null!;
