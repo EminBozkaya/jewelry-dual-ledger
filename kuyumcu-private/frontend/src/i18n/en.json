@@ -239,7 +239,7 @@
       "back": "Go Back"
     },
     "ozetBakiye": {
-      "title": "Calculate General Balance",
+      "title": "Calculate Customer General Balance",
       "rateType": "Rate Type",
       "buying": "Buying",
       "selling": "Selling",
@@ -361,14 +361,16 @@
     "lastWeek": "Last Week",
     "lastMonth": "Last Month",
     "thisYear": "This Year",
-    "deposits": "Deposits",
-    "withdrawals": "Withdrawals",
+    "deposits": "(Customer's Deposits)",
+    "depositsHeading": "Receiving from Customer",
+    "withdrawals": "(Customer's Withdrawals)",
+    "withdrawalsHeading": "Giving to Customer",
     "conversions": "Conversions",
     "noTransactions": "No transactions",
     "transactionList": "Transaction List",
     "allTransactions": "All Transactions",
-    "deposit": "Deposit",
-    "withdrawal": "Withdrawal",
+    "deposit": "Received",
+    "withdrawal": "Given",
     "conversionFilter": "Conversions",
     "searchPlaceholder": "Search customer or description...",
     "noData": "No transactions found in this date range",
@@ -429,10 +431,15 @@
     "generateReportHint": "Click the \"Generate Report\" button above to create the report.",
     "columns": {
       "date": "Date",
-      "type": "Type",
+      "type": "Transaction Type",
       "asset": "Asset",
       "amount": "Amount",
       "description": "Description"
+    },
+    "txTypes": {
+      "deposit": "Deposited to Store",
+      "withdrawal": "Withdrew from Store",
+      "conversion": "Conversion"
     },
     "export": {
       "customerInfo": "Customer Information",
@@ -671,6 +678,8 @@
   },
   "modal": {
     "generalBalance": "Calculate General Balance",
+    "customerGeneralBalance": "Customer General Balance Calculation",
+    "storeGeneralBalance": "Store General Balance Calculation",
     "assetName": "Asset",
     "amount": "Amount",
     "rate": "TRY Rate",
@@ -804,8 +813,8 @@
     "assetTypes": "Asset Types"
   },
   "formatters": {
-    "deposit": "Deposit",
-    "withdrawal": "Withdrawal",
+    "deposit": "Received from Customer",
+    "withdrawal": "Given to Customer",
     "conversion": "Conversion"
   },
   "rates": {

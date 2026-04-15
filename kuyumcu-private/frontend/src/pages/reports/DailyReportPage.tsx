@@ -47,47 +47,50 @@ function buildColumns(navigate: (path: string) => void, t: TFunction): ColumnDef
       ),
     },
     {
-      accessorKey: "type",
+      id: "type",
+      accessorFn: (row) => formatTransactionType(row.type, t),
       header: t("dailyReport.columns.type"),
-      cell: ({ getValue }) => {
-        const type = getValue<string>();
+      cell: ({ getValue, row }) => {
+        const displayValue = getValue<string>();
         const map: Record<string, string> = {
           Deposit: "bg-green-100 text-green-800",
           Withdrawal: "bg-red-100 text-red-800",
           Conversion: "bg-blue-100 text-blue-800",
         };
         return (
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${map[type] ?? "bg-muted text-muted-foreground"}`}>
-            {formatTransactionType(type, t)}
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${map[row.original.type] ?? "bg-muted text-muted-foreground"}`}>
+            {displayValue}
           </span>
         );
       },
     },
     {
       id: "asset",
-      header: t("dailyReport.columns.asset"),
-      cell: ({ row }) => {
-        const tx = row.original;
-        if (tx.type === "Conversion" && tx.conversion) {
-          return <span className="text-sm">{tx.conversion.fromAssetCode} → {tx.conversion.toAssetCode}</span>;
+      accessorFn: (row) => {
+        if (row.type === "Conversion" && row.conversion) {
+          return `${row.conversion.fromAssetCode} → ${row.conversion.toAssetCode}`;
         }
-        return <span className="text-sm">{tx.assetTypeName ?? "—"}</span>;
+        return row.assetTypeName ?? "—";
       },
+      header: t("dailyReport.columns.asset"),
+      cell: ({ getValue }) => <span className="text-sm">{getValue<string>()}</span>,
     },
     {
       id: "amount",
-      header: t("dailyReport.columns.amount"),
-      cell: ({ row }) => {
-        const tx = row.original;
-        if (tx.type === "Conversion" && tx.conversion) {
-          return (
-            <span className="text-sm text-muted-foreground">
-              {tx.conversion.fromAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })} → {tx.conversion.toAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
-            </span>
-          );
+      accessorFn: (row) => {
+        if (row.type === "Conversion" && row.conversion) {
+          return `${row.conversion.fromAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })} → ${row.conversion.toAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
         }
-        const cls = tx.type === "Deposit" ? "text-[var(--color-alacak)]" : "text-[var(--color-borc)]";
-        return <span className={`font-medium text-sm ${cls}`}>{tx.amount?.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 }) ?? "—"}</span>;
+        return row.amount?.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 6 }) ?? "—";
+      },
+      header: t("dailyReport.columns.amount"),
+      cell: ({ getValue, row }) => {
+        const displayValue = getValue<string>();
+        if (row.original.type === "Conversion") {
+          return <span className="text-sm text-muted-foreground">{displayValue}</span>;
+        }
+        const cls = row.original.type === "Deposit" ? "text-[var(--color-alacak)]" : "text-[var(--color-borc)]";
+        return <span className={`font-medium text-sm ${cls}`}>{displayValue}</span>;
       },
     },
     {
@@ -102,11 +105,12 @@ function buildColumns(navigate: (path: string) => void, t: TFunction): ColumnDef
     },
     {
       id: "status",
+      accessorFn: (row) => row.isCancelled ? t("dailyReport.status.cancelled") : t("dailyReport.status.completed"),
       header: t("dailyReport.columns.status"),
-      cell: ({ row }) =>
+      cell: ({ getValue, row }) =>
         row.original.isCancelled
-          ? <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{t("dailyReport.status.cancelled")}</Badge>
-          : <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{t("dailyReport.status.completed")}</Badge>,
+          ? <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{getValue<string>()}</Badge>
+          : <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{getValue<string>()}</Badge>,
     },
   ];
 }
@@ -304,10 +308,15 @@ export function DailyReportPage() {
         {/* Yatırma */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-[var(--color-alacak)]">
-              <ArrowDown className="h-4 w-4" />
-              {t("dailyReport.deposits")}
-            </CardTitle>
+            <div className="space-y-1">
+              <CardTitle className="text-lg text-[var(--color-alacak)]">
+                {t("dailyReport.depositsHeading")}
+              </CardTitle>
+              <div className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-alacak)] opacity-80">
+                <ArrowDown className="h-4 w-4" />
+                {t("dailyReport.deposits")}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? <Skeleton className="h-16 w-full" /> : (
@@ -332,10 +341,15 @@ export function DailyReportPage() {
         {/* Çekme */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-[var(--color-borc)]">
-              <ArrowUp className="h-4 w-4" />
-              {t("dailyReport.withdrawals")}
-            </CardTitle>
+            <div className="space-y-1">
+              <CardTitle className="text-lg text-[var(--color-borc)]">
+                {t("dailyReport.withdrawalsHeading")}
+              </CardTitle>
+              <div className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-borc)] opacity-80">
+                <ArrowUp className="h-4 w-4" />
+                {t("dailyReport.withdrawals")}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? <Skeleton className="h-16 w-full" /> : (
