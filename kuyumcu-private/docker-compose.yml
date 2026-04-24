@@ -5,25 +5,36 @@ services:
     environment:
       POSTGRES_DB: kuyumcu_private
       POSTGRES_USER: kuyumcu
-      POSTGRES_PASSWORD: changeme
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     ports:
       - "15432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kuyumcu -d kuyumcu_private"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/eminbozkaya/jewelery-dual-ledger:test
     container_name: kuyumcu_private_api
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=kuyumcu_private;Username=kuyumcu;Password=changeme
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=kuyumcu_private;Username=kuyumcu;Password=${DB_PASSWORD:-changeme}
+      - Jwt__Key=${JWT_SECRET_KEY}
+      - Jwt__Issuer=kuyumcu-private
+      - Jwt__Audience=kuyumcu-private-client
+      - Jwt__ExpiryHours=12
+      - Cors__Origins__0=http://localhost:3000
+      - Cors__Origins__1=https://test-kuyumcu-private.pages.dev
+      - Cors__Origins__2=https://test-kuyumcu.defteri.app
     ports:
       - "5000:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

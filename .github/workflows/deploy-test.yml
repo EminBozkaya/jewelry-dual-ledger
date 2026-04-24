@@ -37,6 +37,24 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/eminbozkaya/jewelery-dual-ledger:test
 
+      - name: Prepare deploy directory on Oracle VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: opc
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: mkdir -p ~/apps/kuyumcu/test
+
+      - name: Copy docker-compose.yml to Oracle VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: opc
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          source: "kuyumcu-private/docker-compose.yml"
+          target: "~/apps/kuyumcu/test"
+          strip_components: 1
+
       - name: Deploy to Oracle VM
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -44,8 +62,10 @@ jobs:
           username: opc
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
+            cat > ~/apps/kuyumcu/test/.env <<'ENVEOF'
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            ENVEOF
             cd ~/apps/kuyumcu/test
-            podman pull ghcr.io/eminbozkaya/jewelery-dual-ledger:test
-            podman stop kuyumcu-test-api || true
-            podman rm kuyumcu-test-api || true
-            podman-compose up -d
+            podman-compose pull
+            podman-compose up -d --remove-orphans
