@@ -32,7 +32,7 @@ services:
       - Cors__Origins__1=https://test-kuyumcu-private.pages.dev
       - Cors__Origins__2=https://test-kuyumcu.defteri.app
     ports:
-      - "5000:8080"
+      - "5002:8080"
     depends_on:
       postgres:
         condition: service_healthy
