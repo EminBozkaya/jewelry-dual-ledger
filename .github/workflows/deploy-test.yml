@@ -67,5 +67,7 @@ jobs:
             JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
             ENVEOF
             cd ~/apps/kuyumcu/test
-            podman-compose pull
-            podman-compose up -d --remove-orphans
+            podman pull ghcr.io/eminbozkaya/jewelery-dual-ledger:test
+            podman pull docker.io/library/postgres:16-alpine
+            podman-compose down --remove-orphans || true
+            podman-compose up -d
